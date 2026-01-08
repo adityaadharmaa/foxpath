@@ -97,7 +97,7 @@ export default function Register() {
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="email" className="text-gray-600 font-normal"></Label>
+                            <Label htmlFor="email" className="text-gray-600 font-normal">Email</Label>
                             <Input 
                                 id="email"
                                 type="email"
