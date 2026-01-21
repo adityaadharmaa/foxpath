@@ -42,7 +42,7 @@ export default function Login() {
                 // const msg = success.reponse?.data?.message || "Berhasil login!"
                 toast.success(response.message)
                 authService.setSession(response.token.access_token, response.data.user)
-                redirect(response.meta.redirect_to)
+                navigate(response.meta.redirect_to, { replace:true })
             }
         } catch (error: any) {
             const msg = error.response?.data?.message || "Gagal login!"
@@ -105,6 +105,23 @@ export default function Login() {
                                 error={errors.password?.message}
                                 className="bg-gray-50 border-gray-200 h-11 rounded-lg focus:bg-white transition-colors"
                             />
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center gap-2">
+                                <input 
+                                type="checkbox" 
+                                id="remember_me"
+                                className="h-4 w-4 rounder border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer" 
+                                { ...register("remember_me") }
+                            />
+                            <label 
+                                htmlFor="remember_me" 
+                                className="text-sm text-gray-600 cursor-pointer select-none font-medium"
+                            >
+                                Ingat Saya
+                            </label>
+                            </div>
                         </div>
                         <div className="flex-flex-col sm:flex-row items-center gap-4 pt-2">
                             <Button

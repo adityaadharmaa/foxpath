@@ -45,7 +45,7 @@ export default function Register() {
         } catch (error: any) {
             const msg = error.response?.data?.message || "Gagal mendaftar."
             if(error.response?.data?.errors) {
-                Object.values(error.response.data.errors).flat().forEach((err: any) => {
+                Object.values(error.response.data.errors).flat().forEach((error: any) => {
                     toast.error(msg)
                 }) 
             }

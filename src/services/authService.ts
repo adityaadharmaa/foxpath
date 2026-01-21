@@ -3,8 +3,8 @@ import type { LoginPayload, LoginResponse, User } from "@/types/auth"
 import { email } from "zod"
 
 export const authService = {
-    login: async(payload: LoginPayload): Promise<LoginResponse> => {
-        const response = await apiClient.post<LoginResponse>("/auth/login", payload)
+    login: async(credentials: any): Promise<LoginResponse> => {
+        const response = await apiClient.post<LoginResponse>("/auth/login", credentials)
         return response.data
     },
 
@@ -54,12 +54,20 @@ export const authService = {
         localStorage.setItem("user", JSON.stringify(user))
     },
 
-    getUser: (): User | null => {
+    getUser: () => {
         const userStr = localStorage.getItem("user")
-        return userStr ? JSON.parse(userStr) : null
+        if(userStr) {
+            try {
+                return JSON.parse(userStr)
+            } catch (e) {
+                return null
+            }
+        }
+        return null
     },
 
     isAuthenticated: (): boolean => {
-        return !!localStorage.getItem("token")
+        const token = localStorage.getItem("token")
+        return !!token
     }
 }
