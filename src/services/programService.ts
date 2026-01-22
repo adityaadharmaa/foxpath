@@ -5,6 +5,10 @@ export const programService = {
         return await apiClient.get("/admin/programs", {params})
     },
 
+    getProgramDetail: async(id: number) => {
+        return await apiClient.get(`/admin/programs/${id}`)
+    },
+
     getSummary: async () => {
         return await apiClient.get("/admin/programs/summary")
     },

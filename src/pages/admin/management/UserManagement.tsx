@@ -8,7 +8,6 @@ import {
     UserX, 
     Shield, 
     Trash2, 
-    RefreshCcw,
     ChevronLeft,
     ChevronRight,
     Users,

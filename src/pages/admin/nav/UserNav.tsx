@@ -5,9 +5,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function UserNav() {
     const [isOpen, setIsOpen] = useState(false)
+    const [imgError, setImgError] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const navigate = useNavigate()
-    const user = authService.getUser()
+    const [user, setUser] = useState(authService.getUser())
+
+    const profilePicPath = user?.profile_picture || user?.profile?.profile_picture
 
     const handleLogout = () => {
         authService.logout()
@@ -32,14 +35,49 @@ export default function UserNav() {
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
+    const getAvatarUrl = (path: string) => {
+        if(!path) return null
+        if(path.startsWith('http')) return path
+        return `${import.meta.env.API_BASE_URL || 'http://localhost:8000'}/storage/${path}`
+    }
+
+    useEffect(() => {
+        setImgError(false)
+    }, [])
+
+    useEffect(() => {
+        const syncUser = () => {
+            setUser(authService.getUser())
+        }
+
+        window.addEventListener('user-updated', syncUser)
+
+        return () => {
+            window.removeEventListener('user-updated', syncUser)
+        }
+    }, [])
+
+    // console.log("Data-user : ", user)
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors"
             >
-                <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold border border-blue-200">
-                    {user?.username?.charAt(0).toUpperCase() || "A"}
+                <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold border border-blue-200 overflow-hidden">
+                    {profilePicPath && !imgError ? (
+                        <img 
+                            src={getAvatarUrl(profilePicPath)} 
+                            alt={user.username} 
+                            className="w-full h-full object-cover"
+                            onError={() => setImgError(true)}
+                        />
+                    ) : (
+                        <div className="text-sm">
+                            {user.username?.charAt(0).toUpperCase() || "A"}
+                        </div>
+                    )}
                 </div>
                 <div className="text-left hidden sm:block">
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">{user?.username || "Admin"}</p>

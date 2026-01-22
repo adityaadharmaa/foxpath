@@ -72,6 +72,11 @@ export default function ProfilePage() {
                     average_score: formData.applicant_type === 'siswa' ? formData.average_score : null,
                 });
             }
+
+            await authService.fetchMe();
+
+            window.dispatchEvent(new Event('user-updated'))
+            
             toast.success("Profile berhasil disimpan!");
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Gagal menyimpan.");

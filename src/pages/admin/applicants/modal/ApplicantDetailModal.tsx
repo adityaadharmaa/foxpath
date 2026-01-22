@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { applicantService } from "@/services/applicantService";
 import { 
     Loader2, X, User, MapPin, Phone, GraduationCap, FileText, 
-    Download, Calendar, ExternalLink, Trophy, Star, Clock, CheckCircle, 
+    Download, Calendar, ExternalLink, Trophy, Star, Clock, 
     XCircle,
     CheckCircle2,
     AlertCircle

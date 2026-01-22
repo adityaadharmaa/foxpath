@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { programService } from "@/services/programService";
-import { Archive, Calendar, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit, Layers, Loader2, MoreHorizontal, PlayCircle, Plus, RefreshCcw, Search, Shield, ToggleLeft, ToggleRight, Trash2, Users } from "lucide-react";
+import { Archive, Calendar, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit, Eye, Layers, Loader2, MoreHorizontal, PlayCircle, Plus, RefreshCcw, Search, Shield, ToggleLeft, ToggleRight, Trash2, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import ProgramModal from "./modal/ProgramModal";
+import ProgramDetailModal from "./modal/ProgramDetailModal";
 
 function ColumnToggle({columns, onChange} : {columns: any[], onChange: (key: string) => void}) {
     const [isOpen, setIsOpen] = useState(false);
@@ -47,7 +48,7 @@ function ColumnToggle({columns, onChange} : {columns: any[], onChange: (key: str
     )
 }
 
-function ProgramActionMenu({program, onEdit, onDelete, onRestore, onToggle}: any) {
+function ProgramActionMenu({program, onEdit, onDelete, onRestore, onToggle, onViewDetail}: any) {
     const [isOpen, setIsOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
 
@@ -70,6 +71,14 @@ function ProgramActionMenu({program, onEdit, onDelete, onRestore, onToggle}: any
             {isOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-1">
+                        {!program.is_deleted && (
+                            <button
+                                onClick={() => {onViewDetail(); setIsOpen(false)}}
+                                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 rounded-lg"
+                            >
+                                <Eye size={14} className="text-purple-500" /> Lihat Detail & Pelamar
+                            </button>
+                        )}
                         {program.is_deleted ? (
                             <button onClick={() => {onRestore(); setIsOpen(false)}} className="w-full text-left px-3 py-2 text-xs font-medium text-green-600 hover:bg-green-50 flex items-center gap-2 rounded-lg">
                                 <RefreshCcw size={14} /> Restore Program
@@ -99,6 +108,8 @@ function ProgramActionMenu({program, onEdit, onDelete, onRestore, onToggle}: any
 export default function ProgramManagementPage() {
     const [programs, setPrograms] = useState<any[]>([])
     const [summary, setSummary] = useState<any>({total_programs: 0, active_programs: 0, deleted_programs: 0})
+    const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [selectedProgramId, setSelectedProgramId] = useState<number | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     // Params
@@ -316,7 +327,7 @@ export default function ProgramManagementPage() {
                                                     <span className={`block font-semibold text-slate-900 dark:text-white ${program.is_deleted ? 'text-red-600 line-through' : ''}`}>
                                                         {program.name}
                                                     </span>
-                                                    <span className="block text-xs text-slate-500 mt-0.5 truncate max-w-[200px]" title={program.description}>
+                                                    <span className="block text-xs text-slate-500 mt-0.5 truncate max-w-50" title={program.description}>
                                                         {program.description || '-'}
                                                     </span>
                                                 </div>
@@ -404,6 +415,8 @@ export default function ProgramManagementPage() {
                                                     onDelete={() => handleDelete(program.id)}
                                                     onRestore={() => handleRestore(program.id)}
                                                     onToggle={() => handleToggle(program.id)}
+
+                                                    onViewDetail={() => {setSelectedProgramId(program.id); setIsDetailOpen(true)}}
                                                 />
                                             </td>
                                         )}
@@ -441,6 +454,12 @@ export default function ProgramManagementPage() {
                 onClose={() => setIsModalOpen(false)} 
                 onSuccess={() => { fetchData(); fetchSummary(); }} 
                 programToEdit={programToEdit}
+            />
+
+            <ProgramDetailModal
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                programId={selectedProgramId}
             />
         </div>
     );

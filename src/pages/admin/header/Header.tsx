@@ -2,10 +2,12 @@ import { Menu, Search } from "lucide-react"
 import NotificationDropdown from "../dropdown/NotificationDropdown"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import UserNav from "../nav/UserNav"
+import { startsWith } from "zod"
 
 interface HeaderProps {
     setSidebarOpen: (open:boolean) => void
 }
+
 
 export default function Header({ setSidebarOpen }: HeaderProps) {
     return (

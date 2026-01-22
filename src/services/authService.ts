@@ -8,6 +8,20 @@ export const authService = {
         return response.data
     },
 
+    fetchMe: async() => {
+        try{
+            const response = await apiClient.get('/auth/me')
+            const freshUser = response.data.data.user
+
+            localStorage.setItem("user", JSON.stringify(freshUser))
+
+            return freshUser
+        } catch(error) {
+            console.error("Failed to fetch fresh user data", error)
+            return null
+        }
+    },
+
     register: async (payload: any): Promise<any> => {
         const response = await apiClient.post("/auth/register", payload) 
         return response.data

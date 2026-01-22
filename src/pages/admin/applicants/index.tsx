@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { applicantService } from "@/services/applicantService";
-import { Briefcase, Calendar, Check, CheckCircle, CheckLine, ChevronLeft, ChevronRight, Clock, Eye, Layers, Loader2, MoreHorizontal, Search, ShieldCheck, User, XCircle } from "lucide-react";
+import { Briefcase, Calendar, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, Eye, Layers, Loader2, MoreHorizontal, Search, ShieldCheck, User, XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import ApplicantDetailModal from "./modal/ApplicantDetailModal";
