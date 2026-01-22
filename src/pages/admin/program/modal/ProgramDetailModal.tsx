@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { programService } from "@/services/programService";
-import { User, X } from "lucide-react";
+import { Calendar, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -65,9 +65,29 @@ export default function ProgramDetailModal({isOpen, onClose, programId}: any) {
                                         <span className="font-semibold text-slate-800 dark:text-white">{new Date(program.registration_starts_at).toLocaleDateString()}</span>
                                     </div> */}
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                        <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold flex items-center gap-1">
+                                            <Calendar size={12} /> Periode Registrasi
+                                        </span>
+                                        <div className="font-semibold text-slate-800 dark:text-white text-sm flex flex-col">
+                                            <span>
+                                                {program.registration_starts_at 
+                                                    ? new Date(program.registration_starts_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) 
+                                                    : '-'}
+                                            </span>
+
+                                            <span className="text-slate-400 text-[10px] leading-none my-0.5">s/d</span>
+
+                                            <span className={`${new Date(program.registration_ends_at) < new Date() ? 'text-red-500' : ''}`}>
+                                                {program.registration_ends_at 
+                                                    ? new Date(program.registration_ends_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) 
+                                                    : '-'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* <div className="p-3 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                                         <span className="text-slate-400 block mb-1">Registrasi</span>
                                         <span className="font-semibold text-slate-800 dark:text-white">{new Date(program.registration_ends_at).toLocaleDateString()}</span>
-                                    </div>
+                                    </div> */}
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                                         <span className="text-slate-400 block mb-1">Status</span>
                                         <span className={`font-bold ${program.is_active ? 'text-green-600'  : 'text-slate-500'}`}>
