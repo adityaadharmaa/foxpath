@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import RoleModal from "./modal/RoleModal";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 function ColumnToggle({ columns, onChange }: { columns: any[], onChange: (key: string) => void }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -102,6 +103,10 @@ export default function RoleManagementPage() {
     const [displayedRoles, setDisplayedRoles] = useState<any[]>([]); // Data yang ditampilkan (paginated)
     const [summary, setSummary] = useState({ totals: { roles: 0, most_used: '-', most_used_count: 0 } });
     const [isLoading, setIsLoading] = useState(true);
+
+    const [deleteId, setDeleteId] = useState<number | null>(null)
+    const [deleteName, setDeleteName] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
     
     // Filter & Pagination State
     const [search, setSearch] = useState("");
@@ -182,22 +187,31 @@ export default function RoleManagementPage() {
         } catch (error) { console.error(error); }
     };
 
-    const handleDelete = async (id: number, name: string) => {
-        if (name === 'admin') {
-            toast.error("Role Admin tidak boleh dihapus!");
-            return;
-        }
-        if (!confirm(`Yakin ingin menghapus role "${name}"?`)) return;
+    const confirmDelete = (id: number, name: string) => {
+        setDeleteId(id)
+        setDeleteName(name)
+    }
 
-        const toastId = toast.loading("Menghapus role...");
+    const handleDelete = async () => {
+        if (deleteName?.toLowerCase() === 'admin') {
+            toast.error("Role Admin tidak boleh dihapus!")
+            setDeleteId(null)
+            return
+        }
+        
+        if(!deleteId) return 
+        setIsDeleting(true)
         try {
-            await roleService.deleteRole(id);
-            toast.success("Role berhasil dihapus.", { id: toastId });
+            const res = await roleService.deleteRole(deleteId);
+            toast.success(res.data.message);
             fetchData();
             fetchSummary();
+            setDeleteId(null)
         } catch (error: any) {
             const msg = error.response?.data?.message || "Gagal menghapus role.";
-            toast.error(msg, { id: toastId });
+            toast.error(msg);
+        } finally {
+            setIsDeleting(false)
         }
     };
 
@@ -368,8 +382,8 @@ export default function RoleManagementPage() {
                                             <td className="px-6 py-4 text-right">
                                                 <RoleActionMenu 
                                                     onEdit={() => openEditModal(role)}
-                                                    onDelete={() => handleDelete(role.id, role.name)}
-                                                    isProtected={role.name === 'admin'}
+                                                    onDelete={() => confirmDelete(role.id, role.name)}
+                                                    isProtected={role.name.toLowerCase === 'admin'}
                                                 />
                                             </td>
                                         )}
@@ -413,6 +427,17 @@ export default function RoleManagementPage() {
                 onClose={() => setIsModalOpen(false)} 
                 onSuccess={() => { fetchData(); fetchSummary(); }}
                 roleToEdit={roleToEdit}
+            />
+
+            <ConfirmDialog
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={handleDelete}
+                title="Hapus, Role?"
+                description="Tindakan ini tidak dapat dibatalkan. Role yang dihapus akan dihapus permanen."
+                confirmText="Ya, Hapus"
+                variant="danger"
+                isLoading={isDeleting}
             />
         </div>
     );
