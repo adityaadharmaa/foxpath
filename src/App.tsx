@@ -18,6 +18,7 @@ import UserManagementPage from "./pages/admin/management/UserManagement";
 import RoleManagementPage from "./pages/admin/roles";
 import ProgramManagementPage from "./pages/admin/program";
 import ApplicantManagementPage from "./pages/admin/applicants";
+import CriteriaManagementPage from "./pages/admin/criteria/CriteriaManagementPage";
 
 export default function App(){
   return (
@@ -41,6 +42,7 @@ export default function App(){
             <Route path="/admin/roles" element={<RoleManagementPage />}/>
             <Route path="/admin/programs" element={<ProgramManagementPage />}/>
             <Route path="/admin/applications" element={<ApplicantManagementPage />}></Route>
+            <Route path="/admin/criteria" element={<CriteriaManagementPage />}></Route>
           </Route>
         </Route>
         

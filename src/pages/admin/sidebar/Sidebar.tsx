@@ -1,4 +1,4 @@
-import { Briefcase, File, FileText, LayoutDashboard, Settings, ShieldCheck, Users, X } from "lucide-react"
+import { Book, BookA, Briefcase, File, FileText, LayoutDashboard, Settings, ShieldCheck, Users, X } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
 interface SidebarProps {
@@ -13,6 +13,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         { name: "Role Management", href: "/admin/roles", icon: ShieldCheck },
         { name: "Program Management ", href: "/admin/programs", icon: Briefcase },
         { name: "Applicants Management ", href: "/admin/applications", icon: FileText },
+        { name: "Criteria Management ", href: "/admin/criteria", icon: BookA },
     ]
 
     return (

@@ -23,8 +23,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         "peer flex h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 transition-all duration-200",
                         "placeholder:text-slate-400",
                         "focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10",
-                        "disabled:cursor-not-allowed disabled:opacity-50 disabled::bg-slate-100",
-                        error && "border-red-500 bg-red-50 text-red-900 placeholde:text-red-300 focus:border-red-500 focus:ring-red-500/10",
+                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100",
+                        error && "border-red-500 bg-red-50 text-red-900 placeholder:text-red-300 focus:border-red-500 focus:ring-red-500/10",
                         startIcon && "pl-11",
                         endIcon && "pr-11",
 
