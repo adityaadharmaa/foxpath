@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import AddUserModal from "./modal/AddUserModal";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 function ActionMenu({ onToggle, onDelete, onResend, onUpdateRole, currentRole, isActive }: any) {
     const [isOpen, setIsOpen] = useState(false);
@@ -188,6 +189,9 @@ export default function UserManagementPage() {
         totals: { users: 0, active: 0, inactive: 0, deleted_users: 0, admin: 0 },
         by_applicant_type: { siswa: 0, mahasiswa: 0 }
     });
+
+    const [deleteId, setDeleteId] = useState<number | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
     
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -319,15 +323,23 @@ export default function UserManagementPage() {
         }
     }
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Yakin ingin menghapus user ini?")) return;
+    const confirmDelete = (id: number) => {
+        setDeleteId(id)
+    }
+
+    const handleDelete = async () => {
+        if(!deleteId) return 
+        setIsDeleting(true)
         try {
-            await userService.deleteUser(id);
-            toast.success("User berhasil dihapus");
+            const res = await userService.deleteUser(deleteId);
+            toast.success(res.data.message);
             fetchData();
             fetchSummary();
+            setDeleteId(null)
         } catch (error) {
             toast.error("Gagal menghapus user");
+        } finally {
+            setIsDeleting(false)
         }
     };
 
@@ -547,7 +559,7 @@ export default function UserManagementPage() {
                                                     isActive={user.is_active}
                                                     currentRole={user.role_name} 
                                                     onToggle={() => handleToggleStatus(user)}
-                                                    onDelete={() => handleDelete(user.id)}
+                                                    onDelete={() => confirmDelete(user.id)}
                                                     onResend={() => handleResendVerification(user)}
                                                     onUpdateRole={(newRole: string) => handleUpdateRole(user, newRole)}
                                                 />
@@ -594,6 +606,17 @@ export default function UserManagementPage() {
                     fetchData()
                     fetchSummary()
                 }}
+            />
+
+            <ConfirmDialog
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={handleDelete}
+                title="Hapus User?"
+                description="Tindakan ini tidak dapat dibatalkan. User yang dihapus akan masuk ke arsip (soft delete)."
+                confirmText="Ya, Hapus"
+                variant="danger"
+                isLoading={isDeleting}
             />
         </div>
     );
