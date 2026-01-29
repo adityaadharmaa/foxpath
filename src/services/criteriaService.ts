@@ -1,27 +1,31 @@
-import apiClient from "@/lib/axios"
+import apiClient from "@/lib/axios";
 
 export const criteriaService = {
-    getCriteria: async(params:any) => {
-        return await apiClient.get("/admin/criteria", {params})
-    },
+  getCriteria: async (params: any) => {
+    return await apiClient.get("/admin/criteria", { params });
+  },
 
-    createCriteria: async(data: any) => {
-        return await apiClient.post("/admin/criteria", data)
-    },
+  getActiveCriterias: async () => {
+    return await apiClient.get("/admin/criteria/active");
+  },
 
-    updateCriteria: async(id:number, data: any) => {
-        return await apiClient.patch(`/admin/criteria/${id}`, data)
-    },
+  createCriteria: async (data: any) => {
+    return await apiClient.post("/admin/criteria", data);
+  },
 
-    deleteCriteria: async(id:number) => {
-        return await apiClient.delete(`/admin/criteria/${id}`)
-    },
+  updateCriteria: async (id: number, data: any) => {
+    return await apiClient.patch(`/admin/criteria/${id}`, data);
+  },
 
-    restoreCriteria: async(id:number) => {
-        return await apiClient.patch(`/admin/criteria/${id}/restore`)
-    },
+  deleteCriteria: async (id: number) => {
+    return await apiClient.delete(`/admin/criteria/${id}`);
+  },
 
-    toggleStatus: async(id:number) => {
-        return await apiClient.patch(`/admin/criteria/${id}/toggle`)
-    },
-}
+  restoreCriteria: async (id: number) => {
+    return await apiClient.patch(`/admin/criteria/${id}/restore`);
+  },
+
+  toggleStatus: async (id: number) => {
+    return await apiClient.patch(`/admin/criteria/${id}/toggle`);
+  },
+};
