@@ -52,4 +52,9 @@ export const programService = {
   finalizeDecision: async (id: number) => {
     return await apiClient.post(`/admin/programs/${id}/decide`);
   },
+
+  // User Service
+  getAvailablePrograms: async (params?: any) => {
+    return await apiClient.get("/user/prorams", { params });
+  },
 };

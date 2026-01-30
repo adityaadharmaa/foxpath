@@ -13,4 +13,29 @@ export const applicationService = {
   ) => {
     return await apiClient.patch(`/admin/applications/${id}/placement`, data);
   },
+
+  // User Service
+  getMyApplication: async () => {
+    return await apiClient.get("/user/applications");
+  },
+  getApplicationDetails: async (id: number) => {
+    return await apiClient.get(`/user/applications/${id}`);
+  },
+  applyProgram: async (payload: { program_id: number }) => {
+    return await apiClient.post("/user/applications", payload);
+  },
+  uploadDocument: async (applicationId: number, formData: FormData) => {
+    return await apiClient.post(
+      `/user/applications/${applicationId}/documents`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+  },
+  getDocumentStatus: async (applicationId: number) => {
+    return await apiClient.get(
+      `/user/applications/${applicationId}/document-status`,
+    );
+  },
 };
