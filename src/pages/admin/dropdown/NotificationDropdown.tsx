@@ -1,191 +1,259 @@
 import { useState, useEffect, useRef } from "react";
-import { notificationService, type Notification } from "@/services/notificationService";
-import { Bell, Check, Trash2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  notificationService,
+  type Notification,
+} from "@/services/notificationService";
+import {
+  Bell,
+  Trash2,
+  BellOff,
+  CheckCheck,
+  Loader2,
+  Eraser,
+} from "lucide-react";
 import { toast } from "sonner";
-
-const getTitle = (type: string) => {
-    switch (type) {
-        case 'info': return 'Informasi';
-        case 'reset_password': return 'Permintaan Reset Password';
-        case 'password_changed': return 'Keamanan Akun';
-        case 'new_user': return 'Pendaftaran Baru';
-        default: return 'Pemberitahuan';
-    }
-};
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { authService } from "@/services/authService";
 
 export default function NotificationDropdown() {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const user = authService.getUser();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        fetchData();
-        
-        const interval = setInterval(fetchData, 30000); 
-        return () => clearInterval(interval);
-    }, []);
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 60000); // Refresh setiap 1 menit
+    return () => clearInterval(interval);
+  }, []);
 
-    // Tutup dropdown jika klik di luar
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+  useEffect(() => {
+    if (isOpen) {
+      fetchData;
+    }
+  }, [isOpen]);
 
-    const fetchData = async () => {
-        try {
-            const [notifsRaw, countRaw] = await Promise.all([
-                notificationService.getAll(),
-                notificationService.getUnreadCount()
-            ]);
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-            // console.log("Raw Notifications:", notifsRaw);
+  const fetchData = async () => {
+    try {
+      const [notifsData, count] = await Promise.all([
+        notificationService.getAll(),
+        notificationService.getUnreadCount(),
+      ]);
+      setNotifications(notifsData.data.data || []);
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Failed to fetch notifications");
+    }
+  };
 
-            let safeNotifs: Notification[] = [];
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationService.markAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+      toast.success("Semua notifikasi ditandai dibaca");
+    } catch (error) {
+      toast.error("Gagal memperbarui notifikasi");
+    }
+  };
 
-            if (notifsRaw?.data?.data && Array.isArray(notifsRaw.data.data)) {
-                safeNotifs = notifsRaw.data.data;
-            } 
+  const handleMarkRead = async (id: string, isRead: boolean) => {
+    if (isRead) return;
 
-            else if (notifsRaw?.data && Array.isArray(notifsRaw.data)) {
-                safeNotifs = notifsRaw.data;
-            }
-        
-            else if (Array.isArray(notifsRaw)) {
-                safeNotifs = notifsRaw;
-            }
-
-            setNotifications(safeNotifs);
-
-            const safeCount = typeof countRaw === 'number' ? countRaw : (countRaw?.count || 0);
-            setUnreadCount(safeCount);
-
-        } catch (error) {
-            toast.error("Gagal memuat notifikasi");
-            setNotifications([]); 
-        }
-    };
-
-    const handleMarkRead = async (id: string) => {
-        setNotifications(prevNotifs => 
-            prevNotifs.map(n => 
-                n.id === id ? {...n, is_read: true} : n
-            )
-        )
-        
-        const targetNotif = notifications.find(n => n.id === id)
-        if(targetNotif && !targetNotif.is_read) {
-            setUnreadCount(prev => Math.max(0, prev - 1))
-        }
-
-        try {
-            await notificationService.markAsRead(id);
-        } catch (error) {
-            console.error("Gagal sinkronisasi read status", error);
-            setNotifications(prevNotifs => 
-                prevNotifs.map(n => 
-                    n.id === id ? {...n, is_read: false} : n
-                )
-            )
-        }
-    };
-
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
-        e.stopPropagation(); 
-        try {
-            await notificationService.delete(id);
-            setNotifications(prev => prev.filter(n => n.id !== id));
-            const isUnread = notifications.find(n => n.id === id)?.is_read === null;
-            if (isUnread) setUnreadCount(prev => Math.max(0, prev - 1));
-        } catch (error) {
-            toast.error("Gagal menghapus notifikasi");
-        }
-    };
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            {/* --- TRIGGER BUTTON (BELL ICON) --- */}
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>
-                )}
-            </button>
-
-            {/* --- DROPDOWN CONTENT --- */}
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                        <h3 className="font-semibold text-sm text-slate-900 dark:text-white">Notifikasi</h3>
-                        {unreadCount > 0 && (
-                            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
-                                {unreadCount} baru
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="max-h-[400px] overflow-y-auto">
-                        {/* PENGAMAN: Cek Array.isArray dulu sebelum cek length */}
-                        {!Array.isArray(notifications) || notifications.length === 0 ? (
-                            <div className="p-8 text-center text-slate-500 text-sm">
-                                <Bell className="mx-auto h-8 w-8 text-slate-300 mb-2 opacity-50" />
-                                Tidak ada notifikasi.
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {notifications.map((notif) => (
-                                <div 
-                                    key={notif.id}
-                                    // Logic klik tandai baca (gunakan !notif.is_read)
-                                    onClick={() => !notif.is_read && handleMarkRead(notif.id)}
-                                    className={`
-                                        p-4 flex gap-3 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50
-                                        ${!notif.is_read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}
-                                    `}
-                                >
-                                    {/* Indikator Bulat Biru jika belum dibaca */}
-                                    <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!notif.is_read ? 'bg-blue-500' : 'bg-transparent'}`}></div>
-                                    
-                                    <div className="flex-1 space-y-1">
-                                        {/* JUDUL (Ambil dari Type) */}
-                                        <p className={`text-sm ${!notif.is_read ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>
-                                            {getTitle(notif.type)}
-                                        </p>
-                                        
-                                        {/* PESAN (Ambil langsung dari notif.message) */}
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                                            {notif.message}
-                                        </p>
-                                        
-                                        {/* WAKTU (Gunakan created_at_human dari API) */}
-                                        <p className="text-[10px] text-slate-400 mt-1">
-                                            {notif.created_at_human || "Baru saja"}
-                                        </p>
-                                    </div>
-
-                                    <button 
-                                        onClick={(e) => handleDelete(e, notif.id)}
-                                        className="self-start p-1 text-slate-300 hover:text-red-500 transition-colors"
-                                        title="Hapus"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
+    // Update UI instan
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
     );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+
+    try {
+      await notificationService.markAsRead(id);
+    } catch (error) {
+      fetchData(); // Sync ulang jika gagal
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await notificationService.delete(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      fetchData(); // Refresh count
+    } catch (error) {
+      toast.error("Gagal menghapus notifikasi");
+    }
+  };
+
+  const handleClearRead = async () => {
+    try {
+      await notificationService.clearReadAll();
+      setNotifications((prev) => prev.filter((n) => !n.is_read));
+      toast.success("Notifikasi lama dibersihkan");
+    } catch (error) {
+      toast.error("Gagal membersihkan notifikasi");
+    }
+  };
+
+  const handleSeeAll = async () => {
+    setIsOpen(false);
+    if (user?.role === "admin") {
+      navigate("/admin/notifications");
+    } else {
+      navigate("/user/notifications");
+    }
+  };
+
+  return (
+    <div className="relative inline-block" ref={dropdownRef}>
+      {/* TRIGGER BUTTON */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 group"
+      >
+        <Bell size={20} className={cn(unreadCount > 0 && "animate-pulse")} />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 flex h-5 w-5 translate-x-1/2 -translate-y-1/2 items-center justify-center">
+            {/* Efek Ping/Ring untuk menarik perhatian (opsional) */}
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+
+            {/* Badge Angka */}
+            <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 text-[9px] font-black text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          </span>
+        )}
+      </button>
+
+      {/* DROPDOWN CONTENT */}
+      {isOpen && (
+        <div className="fixed md:absolute top-16 md:top-full right-4 left-4 md:left-auto md:right-0 mt-2 z-[100] w-auto md:w-96 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest">
+                Pusat Notifikasi
+              </h3>
+              <div className="flex gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                    title="Tandai semua dibaca"
+                  >
+                    <CheckCheck size={16} />
+                  </button>
+                )}
+                <button
+                  onClick={handleClearRead}
+                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                  title="Bersihkan yang sudah dibaca"
+                >
+                  <Eraser size={16} />
+                </button>
+              </div>
+            </div>
+            {unreadCount > 0 && (
+              <p className="text-[10px] text-slate-500 font-bold uppercase">
+                Anda memiliki{" "}
+                <span className="text-blue-600">{unreadCount}</span> pesan belum
+                dibaca
+              </p>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+            {notifications.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center text-center px-10">
+                <BellOff className="h-10 w-10 text-slate-200 dark:text-slate-700 mb-3" />
+                <p className="text-sm font-bold text-slate-400">
+                  Belum ada notifikasi
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleMarkRead(notif.id, notif.is_read)}
+                    className={cn(
+                      "p-4 flex gap-4 cursor-pointer transition-colors relative group",
+                      !notif.is_read
+                        ? "bg-blue-50/30 dark:bg-blue-900/10"
+                        : "bg-white dark:bg-slate-900",
+                    )}
+                  >
+                    {!notif.is_read && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <span
+                          className={cn(
+                            "text-[10px] uppercase font-black tracking-wider",
+                            !notif.is_read ? "text-blue-600" : "text-slate-400",
+                          )}
+                        >
+                          {notif.title}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400">
+                          {notif.created_at_human}
+                        </span>
+                      </div>
+                      <p
+                        className={cn(
+                          "text-xs leading-relaxed break-words",
+                          !notif.is_read
+                            ? "text-slate-900 dark:text-slate-100 font-bold"
+                            : "text-slate-500 dark:text-slate-400",
+                        )}
+                      >
+                        {notif.message}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(e) => handleDelete(e, notif.id)}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 text-center">
+            <button
+              onClick={handleSeeAll}
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors"
+            >
+              Lihat Semua Aktivitas
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

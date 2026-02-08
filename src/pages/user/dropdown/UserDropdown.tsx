@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/authService";
-import { FileText, LogOut, User } from "lucide-react";
+import { FileText, LogOut, Settings, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -21,10 +21,16 @@ export default function UserDropdown() {
     navigate("login");
   };
 
-  const getAvatarUrl = (path: string) => {
+  const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    return `${import.meta.env.API_BASE_URL || "http://localhost:8000"}/storage/${path}`;
+
+    const cleanPath = path.startsWith("/") ? path.substring(1) : path;
+
+    const storageBase =
+      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
+
+    return `${storageBase}/${cleanPath}`;
   };
 
   useEffect(() => {
@@ -110,6 +116,16 @@ export default function UserDropdown() {
           >
             <FileText size={16} />
             Lamaran Saya
+          </button>
+          <button
+            onClick={() => {
+              navigate("/user/settings");
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center gap-2 transition-colors"
+          >
+            <Settings size={16} />
+            Settings
           </button>
 
           <div className="my-1 border-t border-slate-100 dark:border-slate-800"></div>

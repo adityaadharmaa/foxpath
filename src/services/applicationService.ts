@@ -21,7 +21,7 @@ export const applicationService = {
   getApplicationDetails: async (id: number) => {
     return await apiClient.get(`/user/applications/${id}`);
   },
-  applyProgram: async (payload: { program_id: number }) => {
+  applyProgram: async (payload: { programs_id: number }) => {
     return await apiClient.post("/user/applications", payload);
   },
   uploadDocument: async (applicationId: number, formData: FormData) => {

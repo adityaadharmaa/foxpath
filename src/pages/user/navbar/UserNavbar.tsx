@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Menu, X } from "lucide-react";
 import UserDropdown from "../dropdown/UserDropdown";
 import UserMobileMenu from "./UserMobileMenu";
+import NotificationDropdown from "@/pages/admin/dropdown/NotificationDropdown";
 
 export default function UserNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -26,18 +27,23 @@ export default function UserNavbar() {
           <UserNavLinks />
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <ModeToggle />
-
-          <Button
+          <div className="flex items-center">
+            <ModeToggle />
+          </div>
+          {/* <Button
             variant="ghost"
             size="icon"
             className="text-slate-500 relative hidden sm:flex"
           >
             <Bell size={20} />
             <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-950"></span>
-          </Button>
-
-          <UserDropdown />
+          </Button> */}
+          <div className="flex items-center">
+            <NotificationDropdown />
+          </div>
+          <div className="flex items-center">
+            <UserDropdown />
+          </div>
           <Button
             variant="ghost"
             size="icon"

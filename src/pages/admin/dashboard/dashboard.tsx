@@ -33,7 +33,6 @@ import {
   GraduationCap,
   Shield,
   TrendingUp,
-  User,
   Users,
   AlertCircle,
 } from "lucide-react";
@@ -41,15 +40,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import BreadCrumbs from "@/components/ui/breadcrumbs";
 import SchoolStatsChart from "./charts/SchoolStatsChart";
+import { cn } from "@/lib/utils";
 
-// --- Interfaces (Tetap Sama) ---
+// --- Interfaces ---
 interface programSummary {
   total_programs: number;
   active_programs: number;
   total_applications: number;
-  draft_applications: number;
   submitted_applications: number;
-  pending_applications: number;
   verified_applications: number;
   scored_applications: number;
   calculated_applications: number;
@@ -58,7 +56,7 @@ interface programSummary {
 }
 
 interface AnalyticsData {
-  trends: { date: string; count: number };
+  trends: { date: string; count: number }[];
   deadlines: { id: number; name: string; registration_ends_at: string }[];
   recent_activities: {
     id: number;
@@ -73,7 +71,6 @@ interface userSummary {
   totals: {
     users: number;
     active: number;
-    inactive: number;
     admin: number;
   };
   by_applicant_type: {
@@ -82,25 +79,20 @@ interface userSummary {
   };
 }
 
-interface roleSummary {
-  totals: {
-    roles: number;
-    most_used: string;
-    most_used_count: number;
-  };
-}
-
-// --- Custom Components untuk Mempercantik Chart ---
+// --- Custom Components ---
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-3 rounded-xl shadow-xl text-xs">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-xl text-xs">
         <p className="font-bold text-slate-700 dark:text-slate-200 mb-1">
-          {label}
+          {new Date(label).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+          })}
         </p>
-        <p className="text-blue-600 font-semibold">
+        <p className="text-blue-600 dark:text-blue-400 font-bold">
           {payload[0].value}{" "}
-          <span className="text-slate-500 font-normal">Data</span>
+          <span className="text-slate-500 font-normal">Pendaftar</span>
         </p>
       </div>
     );
@@ -111,7 +103,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function DashboardPage() {
   const [programStats, setProgramStats] = useState<programSummary | null>(null);
   const [userStats, setUserStats] = useState<userSummary | null>(null);
-  const [roleStats, setRoleStats] = useState<roleSummary | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -127,7 +118,6 @@ export default function DashboardPage() {
 
         setProgramStats(progRes.data.data);
         setUserStats(userRes.data.data);
-        setRoleStats(roleRes.data.data);
         setAnalytics(analiyticsRes.data.data);
       } catch (error: any) {
         toast.error("Gagal memuat data dashboard.");
@@ -135,44 +125,37 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
 
-  // Data Formatting
   const applicationStatusData = programStats
     ? [
         {
           name: "Submitted",
           value: programStats.submitted_applications,
           color: "#3B82F6",
-        }, // Blue
+        },
         {
           name: "Verified",
           value: programStats.verified_applications,
           color: "#8B5CF6",
-        }, // Violet
+        },
         {
           name: "Scored",
           value: programStats.scored_applications,
           color: "#F59E0B",
-        }, // Amber
-        {
-          name: "Calculated",
-          value: programStats.calculated_applications,
-          color: "#0EA5E9",
-        }, // Sky
+        },
         {
           name: "Accepted",
           value: programStats.accepted_applications,
           color: "#10B981",
-        }, // Emerald
+        },
         {
           name: "Rejected",
           value: programStats.rejected_applications,
           color: "#EF4444",
-        }, // Red
-      ].filter((item) => item.value > 0) // Hanya tampilkan yang ada nilainya agar chart tidak penuh
+        },
+      ].filter((item) => item.value > 0)
     : [];
 
   const applicantTypeData = userStats
@@ -190,87 +173,87 @@ export default function DashboardPage() {
       ]
     : [];
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  if (isLoading) return <DashboardSkeleton />;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      {/* 1. Header Section */}
-      <div className="flex flex-col gap-1">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20 px-4 md:px-0">
+      {/* 1. Header */}
+      <div className="flex flex-col gap-1 mt-4">
         <BreadCrumbs items={[{ label: "Dashboard" }]} />
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
           Dashboard Overview
         </h1>
-        <p className="text-slate-500 dark:text-slate-400">
-          Pantau aktivitas pendaftaran, statistik program, dan metrik utama.
+        <p className="text-slate-500 dark:text-slate-400 font-medium">
+          Manajemen sistem seleksi magang PT Foxbyte Global Inovasi.
         </p>
       </div>
 
-      {/* 2. Top Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* 2. Top Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Pelamar"
           value={programStats?.total_applications || 0}
-          icon={<FileText className="text-blue-600" size={22} />}
+          icon={
+            <FileText className="text-blue-600 dark:text-blue-400" size={22} />
+          }
           iconClassName="bg-blue-100/50 dark:bg-blue-900/30"
-          trend="All Time"
-          className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-all duration-300"
+          className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
         />
         <StatCard
           title="Program Aktif"
           value={programStats?.active_programs || 0}
-          icon={<Briefcase className="text-emerald-600" size={22} />}
+          icon={
+            <Briefcase
+              className="text-emerald-600 dark:text-emerald-400"
+              size={22}
+            />
+          }
           iconClassName="bg-emerald-100/50 dark:bg-emerald-900/30"
           subtitle={`${programStats?.total_programs} Total Program`}
-          className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-all duration-300"
-          indiCatorColor="bg-emerald-500"
+          className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
         />
         <StatCard
           title="User Terdaftar"
           value={userStats?.totals.users || 0}
-          icon={<Users className="text-violet-600" size={22} />}
+          icon={
+            <Users className="text-violet-600 dark:text-violet-400" size={22} />
+          }
           iconClassName="bg-violet-100/50 dark:bg-violet-900/30"
-          subtitle={`${userStats?.totals.active} Akun Aktif`}
-          className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-all duration-300"
+          className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
         />
         <StatCard
-          title="Butuh Tindakan"
-          value={
-            (programStats?.submitted_applications || 0) +
-            (programStats?.verified_applications || 0)
+          title="Butuh Verifikasi"
+          value={programStats?.submitted_applications || 0}
+          icon={
+            <AlertCircle
+              className="text-amber-600 dark:text-amber-400"
+              size={22}
+            />
           }
-          icon={<AlertCircle className="text-amber-600" size={22} />}
           iconClassName="bg-amber-100/50 dark:bg-amber-900/30"
-          subtitle="Submitted & Verified"
-          className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-all duration-300"
+          className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
         />
       </div>
 
-      {/* 3. Main Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 h-full">
-        {/* A. Trend Chart (Lebar: 5/7) */}
-        <Card className="lg:col-span-5 shadow-sm border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
+      {/* 3. Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+        {/* Tren Pendaftaran */}
+        <Card className="lg:col-span-5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <TrendingUp size={20} className="text-blue-600" />
-              </div>
-              Tren Pendaftaran
+            <CardTitle className="flex items-center gap-2 text-lg dark:text-white font-bold">
+              <TrendingUp size={20} className="text-blue-500" /> Tren
+              Pendaftaran
             </CardTitle>
-            <CardDescription>
-              Grafik jumlah pendaftaran dalam 30 hari terakhir.
+            <CardDescription className="dark:text-slate-400">
+              Statistik 30 hari terakhir.
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[320px] pt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={analytics?.trends || []}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
+              <AreaChart data={analytics?.trends || []}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2} />
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -278,6 +261,7 @@ export default function DashboardPage() {
                   strokeDasharray="3 3"
                   vertical={false}
                   stroke="#E2E8F0"
+                  className="dark:stroke-slate-800"
                 />
                 <XAxis
                   dataKey="date"
@@ -287,25 +271,17 @@ export default function DashboardPage() {
                       month: "short",
                     })
                   }
-                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
                   axisLine={false}
                   tickLine={false}
-                  dy={10}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{
-                    stroke: "#3B82F6",
-                    strokeWidth: 1,
-                    strokeDasharray: "4 4",
-                  }}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="count"
@@ -313,109 +289,72 @@ export default function DashboardPage() {
                   strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorCount)"
-                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* B. Upcoming Deadlines (Lebar: 2/7) */}
-        <Card className="lg:col-span-2 shadow-sm border-slate-200 dark:border-slate-800 flex flex-col hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base text-red-600">
+        {/* Deadlines */}
+        <Card className="lg:col-span-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-red-600 dark:text-red-400 font-bold">
               <Calendar size={18} /> Segera Ditutup
             </CardTitle>
-            <CardDescription className="text-xs">
-              Program deadline &lt; 7 hari.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto pr-1">
+          <CardContent className="space-y-4">
             {analytics?.deadlines && analytics.deadlines.length > 0 ? (
-              <div className="space-y-3">
-                {analytics.deadlines.map((prog) => (
-                  <div
-                    key={prog.id}
-                    className="flex flex-col p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 transition-transform hover:scale-[1.02]"
-                  >
-                    <p
-                      className="font-semibold text-sm text-slate-800 dark:text-slate-100 line-clamp-1"
-                      title={prog.name}
-                    >
-                      {prog.name}
-                    </p>
-                    <div className="flex justify-between items-end mt-2">
-                      <div className="text-xs text-red-600 bg-white/50 px-2 py-1 rounded-md font-medium">
-                        {new Date(prog.registration_ends_at).toLocaleDateString(
-                          "id-ID",
-                          { day: "numeric", month: "short", year: "numeric" },
-                        )}
-                      </div>
-                      <Clock size={14} className="text-red-400" />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              analytics.deadlines.map((prog) => (
+                <div
+                  key={prog.id}
+                  className="p-3 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30"
+                >
+                  <p className="font-bold text-sm dark:text-slate-100 truncate">
+                    {prog.name}
+                  </p>
+                  <p className="text-[10px] text-red-600 dark:text-red-400 mt-1 font-bold">
+                    Tutup:{" "}
+                    {new Date(prog.registration_ends_at).toLocaleDateString(
+                      "id-ID",
+                    )}
+                  </p>
+                </div>
+              ))
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4">
-                <CheckCircle2
-                  size={36}
-                  className="mb-2 text-emerald-100 text-emerald-500"
-                />
-                <p>Aman! Tidak ada deadline dalam waktu dekat.</p>
+              <div className="text-center py-10 text-slate-400 text-xs">
+                Semua deadline masih lama.
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* 4. Secondary Analytics Section */}
+      {/* 4. Secondary Analytics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* C. Applicant Demographics */}
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
+        {/* Demografi */}
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-base font-bold flex items-center gap-2 dark:text-white">
               <GraduationCap size={18} className="text-violet-500" /> Demografi
               Pelamar
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={applicantTypeData}
-                layout="vertical"
-                margin={{ left: 0, right: 20 }}
-              >
+              <BarChart data={applicantTypeData} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis
                   dataKey="name"
                   type="category"
                   width={80}
-                  tick={{ fontSize: 12, fill: "#64748B" }}
+                  tick={{ fontSize: 12, fill: "#94a3b8" }}
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  cursor={{ fill: "#F1F5F9" }}
-                  contentStyle={{
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
-                />
-                <Bar
-                  dataKey="value"
-                  radius={[0, 6, 6, 0]}
-                  barSize={32}
-                  label={{
-                    position: "right",
-                    fill: "#64748b",
-                    fontSize: 12,
-                    formatter: (val: any) => (val > 0 ? val : ""),
-                  }}
-                >
+                <Tooltip cursor={{ fill: "#F1F5F9", opacity: 0.1 }} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
                   {applicantTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                    <Cell key={index} fill={entry.fill} />
                   ))}
                 </Bar>
               </BarChart>
@@ -423,16 +362,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* D. School Stats (Imported Component) */}
-        {/* Pastikan component SchoolStatsChart Anda tingginya responsive (h-full) */}
-        <div className="h-full">
-          <SchoolStatsChart />
-        </div>
-
-        {/* E. Application Status */}
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
+        {/* Status Aplikasi (Pie Chart) */}
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-base font-bold flex items-center gap-2 dark:text-white">
               <Shield size={18} className="text-emerald-500" /> Status Aplikasi
             </CardTitle>
           </CardHeader>
@@ -441,92 +374,65 @@ export default function DashboardPage() {
               <PieChart>
                 <Pie
                   data={applicationStatusData}
-                  cx="50%"
-                  cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  paddingAngle={4}
+                  paddingAngle={5}
                   dataKey="value"
-                  cornerRadius={4}
                 >
                   {applicationStatusData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      strokeWidth={0}
-                    />
+                    <Cell key={index} fill={entry.color} strokeWidth={0} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
-                />
+                <Tooltip />
                 <Legend
-                  verticalAlign="bottom"
-                  align="center"
                   iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+                  wrapperStyle={{ fontSize: "10px", color: "#94a3b8" }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* School Stats Chart */}
+        <div className="h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+          <SchoolStatsChart />
+        </div>
       </div>
 
-      {/* 5. Recent Activities List (Full Width) */}
-      <Card className="shadow-sm border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
-        <CardHeader className="border-b border-slate-100 dark:border-slate-800/50 pb-4">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
+      {/* 5. Recent Activities */}
+      <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+        <CardHeader className="border-b border-slate-50 dark:border-slate-800/50 pb-4">
+          <CardTitle className="text-base font-bold flex items-center gap-2 dark:text-white">
             <BellRing size={18} className="text-amber-500" /> Aktivitas Terbaru
           </CardTitle>
-          <CardDescription>Log aktivitas pendaftaran terkini.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {analytics?.recent_activities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex gap-3 items-start p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors border border-transparent hover:border-slate-100"
+                className="flex gap-3 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 hover:border-blue-200 dark:hover:border-blue-900 transition-colors"
               >
-                <div className="mt-1 min-w-10 flex justify-center">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 font-bold text-xs uppercase">
-                    {activity.user_name.substring(0, 2)}
-                  </div>
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs">
+                  {activity.user_name.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-slate-800 dark:text-white truncate">
+                  <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
                     {activity.user_name}
                   </p>
-                  <p className="text-xs text-slate-500 line-clamp-2">
-                    Mendaftar program{" "}
-                    <span className="text-blue-600 font-medium">
-                      {activity.program_name}
-                    </span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                    Melamar: {activity.program_name}
                   </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded">
-                      <Clock size={10} />{" "}
-                      {new Date(activity.created_at).toLocaleString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                    <Clock size={10} />{" "}
+                    {new Date(activity.created_at).toLocaleDateString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
                 </div>
               </div>
             ))}
-            {(!analytics?.recent_activities ||
-              analytics.recent_activities.length === 0) && (
-              <div className="col-span-full py-8 text-center text-slate-400">
-                Belum ada aktivitas baru.
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

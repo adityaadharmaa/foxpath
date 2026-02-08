@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { userService } from "@/services/userService";
+import { authService } from "@/services/authService"; // Import authService
 import {
   Search,
   MoreHorizontal,
@@ -11,26 +12,26 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  Clock,
   User,
   GraduationCap,
-  BookOpen,
+  Plus,
   Mail,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Columns,
-  Check,
   ListFilter,
+  MoreVertical,
+  Fingerprint,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import AddUserModal from "./modal/AddUserModal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import BreadCrumbs from "@/components/ui/breadcrumbs";
+import { cn } from "@/lib/utils";
 
+// --- ACTION MENU COMPONENT ---
 function ActionMenu({
+  userId,
   onToggle,
   onDelete,
   onResend,
@@ -41,6 +42,10 @@ function ActionMenu({
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // LOGIC PROTEKSI: Menggunakan ID dari localStorage
+  const loggedInUser = authService.getUser();
+  const isSelf = loggedInUser?.id === userId; // Perbandingan berbasis ID
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -51,184 +56,86 @@ function ActionMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const roleStr = String(currentRole || "").toLowerCase();
-  const isAdmin = roleStr === "admin";
-
+  const isAdmin = currentRole === "admin";
   const targetRole = isAdmin ? "users" : "admin";
-  const roleLabel = isAdmin ? "Jadikan User" : "Jadikan Admin";
-  const RoleIcon = isAdmin ? User : Shield;
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative inline-block text-left" ref={menuRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+        className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-all active:scale-90"
       >
-        <MoreHorizontal size={18} />
+        <MoreVertical size={18} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="py-1">
+        <div
+          className={cn(
+            "absolute right-0 mt-2 w-52 origin-top-right bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200",
+            "z-[100]",
+          )}
+        >
+          <div className="p-1.5 space-y-0.5">
             <button
               onClick={() => {
                 onResend();
                 setIsOpen(false);
               }}
-              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg transition-colors"
             >
-              <Mail size={14} className="text-blue-500" />
-              Kirim Email Verifikasi
+              <Mail size={14} className="text-blue-500" /> Kirim Verifikasi
+              Email
             </button>
-            <button
-              onClick={() => {
-                onUpdateRole(targetRole);
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-            >
-              <RoleIcon
-                size={14}
-                className={
-                  currentRole === "admin" ? "text-slate-500" : "text-purple-500"
-                }
-              />
-              {roleLabel}
-            </button>
-            <button
-              onClick={() => {
-                onToggle();
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-            >
-              {isActive ? (
-                <UserX size={14} className="text-red-500" />
-              ) : (
-                <UserCheck size={14} className="text-green-500" />
-              )}
-              {isActive ? "Nonaktifkan" : "Aktifkan"}
-            </button>
-            <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
-            <button
-              onClick={() => {
-                onDelete();
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-            >
-              <Trash2 size={14} /> Hapus User
-            </button>
+
+            {/* Proteksi berbasis ID */}
+            {!isSelf ? (
+              <>
+                <button
+                  onClick={() => {
+                    onUpdateRole(targetRole);
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg transition-colors"
+                >
+                  {isAdmin ? (
+                    <User size={14} className="text-slate-500" />
+                  ) : (
+                    <Shield size={14} className="text-purple-500" />
+                  )}
+                  {isAdmin ? "Ubah ke User Biasa" : "Jadikan Administrator"}
+                </button>
+                <button
+                  onClick={() => {
+                    onToggle();
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg transition-colors"
+                >
+                  {isActive ? (
+                    <UserX size={14} className="text-amber-500" />
+                  ) : (
+                    <UserCheck size={14} className="text-emerald-500" />
+                  )}
+                  {isActive ? "Nonaktifkan Akun" : "Aktifkan Akun"}
+                </button>
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+                <button
+                  onClick={() => {
+                    onDelete();
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} /> Hapus Permanen
+                </button>
+              </>
+            ) : (
+              <div className="px-4 py-2.5 text-[10px] font-black text-amber-600 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg italic flex items-center gap-2">
+                <Shield size={12} /> Akun Sedang Digunakan
+              </div>
+            )}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ExportMenu({
-  onExport,
-}: {
-  onExport: (format: "xlsx" | "csv") => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <Button
-        variant="outline"
-        className="gap-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Download size={16} /> Export
-      </Button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="py-1">
-            <button
-              onClick={() => {
-                onExport("xlsx");
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-            >
-              <FileSpreadsheet size={14} className="text-green-600" />
-              Export Excel (.xlsx)
-            </button>
-            <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
-            <button
-              onClick={() => {
-                onExport("csv");
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-            >
-              <FileText size={14} className="text-green-600" />
-              Export CSV (.csv)
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ColumnToggle({
-  columns,
-  onChange,
-}: {
-  columns: any[];
-  onChange: (key: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node))
-        setIsOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <Button
-        variant="outline"
-        className="gap-2 border-slate-200 dark:border-slate-800"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Columns size={16} />
-        Columns
-      </Button>
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
-          <p className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">
-            Toggle Columns
-          </p>
-          {columns.map((col) => (
-            <button
-              key={col.key}
-              onClick={() => onChange(col.key)}
-              className="w-full tex-left px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hoverLbg-slate-800 flex items-center justify-between rounded-md"
-            >
-              {col.label}
-              {col.visible && <Check size={14} className="text-blue-600" />}
-            </button>
-          ))}
         </div>
       )}
     </div>
@@ -237,19 +144,15 @@ function ColumnToggle({
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
-  // Sesuaikan initial state dengan struktur response backend Anda
   const [summary, setSummary] = useState({
-    totals: { users: 0, active: 0, inactive: 0, deleted_users: 0, admin: 0 },
+    totals: { users: 0, active: 0, admin: 0 },
     by_applicant_type: { siswa: 0, mahasiswa: 0 },
   });
-
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [search, setSearch] = useState("");
-
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [pagination, setPagination] = useState({
     current_page: 1,
     last_page: 1,
@@ -257,19 +160,8 @@ export default function UserManagementPage() {
     per_page: 10,
   });
 
-  const [visibleColumns, setVisibleColumns] = useState([
-    { key: "user", label: "User Info", visible: true },
-    { key: "email", label: "Email", visible: true },
-    { key: "role", label: "Role", visible: true },
-    { key: "status", label: "Status", visible: true },
-    { key: "created_at", label: "Bergabung", visible: true },
-    { key: "action", label: "Aksi", visible: true },
-  ]);
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchData();
-    }, 500);
+    const timer = setTimeout(() => fetchData(), 500);
     return () => clearTimeout(timer);
   }, [pagination.current_page, pagination.per_page, search]);
 
@@ -286,16 +178,9 @@ export default function UserManagementPage() {
         search,
       );
       setUsers(response.data);
-      if (response.meta && response.meta.pagination) {
-        setPagination({
-          current_page: response.meta.pagination.current_page,
-          last_page: response.meta.pagination.last_page,
-          total: response.meta.pagination.total,
-          per_page: response.meta.pagination.per_page,
-        });
-      }
+      if (response.meta?.pagination) setPagination(response.meta.pagination);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -304,9 +189,7 @@ export default function UserManagementPage() {
   const fetchSummary = async () => {
     try {
       const res = await userService.getSummary();
-      if (res.data) {
-        setSummary(res.data);
-      }
+      if (res.data) setSummary(res.data);
     } catch (error) {
       console.error(error);
     }
@@ -315,89 +198,44 @@ export default function UserManagementPage() {
   const handleToggleStatus = async (user: any) => {
     try {
       await userService.toggleStatus(user.id, user.is_active);
-      toast.success(
-        `User berhasil ${user.is_active ? "dinonaktifkan" : "diaktifkan"}`,
-      );
+      toast.success(`Status user berhasil diperbarui`);
       fetchData();
       fetchSummary();
     } catch (error) {
-      toast.error("Gagal mengubah status user");
+      toast.error("Gagal mengubah status");
     }
   };
 
   const handleResendVerification = async (user: any) => {
     const toastId = toast.loading(`Mengirim email ke ${user.email}...`);
-
     try {
       await userService.resendVerification(user.id);
-      toast.success("Email verifikasi berhasil dikirim!", { id: toastId });
-    } catch (error: any) {
-      const msg =
-        error.response?.data?.message || "Gagal mengirim email verifikasi.";
-      toast.error(msg, { id: toastId });
+      toast.success("Email verifikasi terkirim!", { id: toastId });
+    } catch (error) {
+      toast.error("Gagal mengirim email.", { id: toastId });
     }
   };
 
   const handleUpdateRole = async (user: any, newRole: string) => {
-    const toastId = toast.loading("Memproses perubahan role...");
-
+    const toastId = toast.loading("Mengubah role...");
     try {
       const response = await userService.updateRole(user.id, newRole);
-
       toast.success(response.data.message, { id: toastId });
-
       fetchData();
       fetchSummary();
-    } catch (error: any) {
-      const errMsg = error.response?.data?.message || "Gagal mengubah role.";
-      toast.error(errMsg, { id: toastId });
-    }
-  };
-
-  const handleExport = async (format: "xlsx" | "csv") => {
-    const toastId = toast.loading(
-      `Mengekspor data ke ${format.toUpperCase()}...`,
-    );
-
-    try {
-      const response = await userService.exportUser(format);
-
-      const type =
-        format === "xlsx"
-          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          : "text/csv";
-
-      const url = window.URL.createObjectURL(
-        new Blob([response.data], { type: type }),
-      );
-
-      const link = document.createElement("a");
-      link.href = url;
-
-      const timestampt = new Date().toISOString().split("T")[0];
-      link.setAttribute("download", `users_export_${timestampt}.${format}`);
-
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-
-      toast.success("Data berhasil di-download", { id: toastId });
     } catch (error) {
-      console.error(error);
-      toast.error("Gagal mengekspor data.", { id: toastId });
+      toast.error("Gagal mengubah role.", { id: toastId });
     }
   };
 
-  const confirmDelete = (id: number) => {
-    setDeleteId(id);
-  };
+  const confirmDelete = (id: number) => setDeleteId(id);
 
   const handleDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
     try {
-      const res = await userService.deleteUser(deleteId);
-      toast.success(res.data.message);
+      await userService.deleteUser(deleteId);
+      toast.success("User berhasil dihapus");
       fetchData();
       fetchSummary();
       setDeleteId(null);
@@ -408,411 +246,370 @@ export default function UserManagementPage() {
     }
   };
 
-  // Helper untuk URL Gambar (Sesuaikan path storage Anda)
-  const getAvatarUrl = (path: string) => {
+  const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
-    // Jika path sudah full URL (http...), pakai langsung. Jika tidak, tambahkan base url storage
-    if (path.startsWith("http")) return path;
-    return `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/storage/${path}`;
-  };
-
-  const toggleColumn = (key: string) => {
-    setVisibleColumns((cols) =>
-      cols.map((c) => (c.key === key ? { ...c, visible: !c.visible } : c)),
-    );
+    const storageBase =
+      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
+    return `${storageBase}/${path.startsWith("/") ? path.substring(1) : path}`;
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-      {/* --- HEADER --- */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 px-4 md:px-0 mt-4">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <BreadCrumbs items={[{ label: "User Management" }]} />
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             User Management
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Kelola data pengguna sistem pendaftaran magang.
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">
+            Otorisasi dan kontrol data pengguna FoxPath.
           </p>
         </div>
-        <div className="flex gap-3">
-          <ExportMenu onExport={handleExport} />
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-600/20"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <Users size={16} /> Add User
-          </Button>
-        </div>
+        <Button
+          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg rounded-2xl h-12 px-8 font-bold"
+          onClick={() => setIsAddModalOpen(true)}
+        >
+          <Plus size={18} /> Tambah User
+        </Button>
       </div>
 
-      {/* --- STATS CARDS (ADAPTIVE LIGHT/DARK) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* STATS OVERVIEW */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Users"
           value={summary.totals.users}
           icon={<Users className="text-blue-500" />}
-          border="border-blue-200 dark:border-blue-900"
         />
         <StatCard
-          title="Active Users"
+          title="Active Status"
           value={summary.totals.active}
-          icon={<UserCheck className="text-green-500" />}
-          indicator="bg-green-500"
-          border="border-green-200 dark:border-green-900"
+          icon={<UserCheck className="text-emerald-500" />}
+          indicator="bg-emerald-500"
         />
         <StatCard
-          title="Inactive / Pending"
-          value={summary.totals.inactive}
-          icon={<Clock className="text-orange-500" />}
-          indicator="bg-orange-500"
-          border="border-orange-200 dark:border-orange-900"
-        />
-        <StatCard
-          title="Administrator"
+          title="Administrators"
           value={summary.totals.admin}
-          icon={<Shield className="text-red-500" />}
-          border="border-red-200 dark:border-red-900"
+          icon={<Shield className="text-purple-500" />}
         />
         <StatCard
-          title="Mahasiswa"
-          value={summary.by_applicant_type.mahasiswa}
-          icon={<GraduationCap className="text-purple-500" />}
-          border="border-purple-200 dark:border-purple-900"
-        />
-        <StatCard
-          title="Siswa"
-          value={summary.by_applicant_type.siswa}
-          icon={<BookOpen className="text-cyan-500" />}
-          border="border-cyan-200 dark:border-cyan-900"
+          title="Total Pelamar"
+          value={
+            summary.by_applicant_type.siswa +
+            summary.by_applicant_type.mahasiswa
+          }
+          icon={<GraduationCap className="text-orange-500" />}
         />
       </div>
 
-      {/* --- MAIN TABLE CARD --- */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-        {/* TOOLBAR */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-slate-950/30">
-          <div className="relative w-full sm:w-72">
-            {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" /> */}
-            <Input
-              placeholder="Cari nama atau email..."
-              className="pl-10 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              startIcon={
-                <Search
-                  size={18}
-                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-                />
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="hidden sm:inline">Rows:</span>
-              <select
-                className="h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
-                value={pagination.per_page}
-                onChange={(e) =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    per_page: Number(e.target.value),
-                    current_page: 1,
-                  }))
-                }
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-
-            <ColumnToggle columns={visibleColumns} onChange={toggleColumn} />
-          </div>
+      {/* TOOLBAR */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="relative w-full sm:w-80">
+          <Input
+            placeholder="Cari nama atau email..."
+            className="pl-11 h-12"
+            startIcon={<Search size={18} className="text-slate-400" />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-
-        {/* TABLE */}
-        <div className="overflow-x-auto relative min-h-75">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-950/50 uppercase text-[11px] tracking-wider font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-              <tr>
-                {visibleColumns.find((c) => c.key === "user")?.visible && (
-                  <th className="px-6 py-4">User Info</th>
-                )}
-                {visibleColumns.find((c) => c.key === "email")?.visible && (
-                  <th className="px-6 py-4">Email</th>
-                )}
-                {visibleColumns.find((c) => c.key === "role")?.visible && (
-                  <th className="px-6 py-4">Role</th>
-                )}
-                {visibleColumns.find((c) => c.key === "status")?.visible && (
-                  <th className="px-6 py-4">Status</th>
-                )}
-                {visibleColumns.find((c) => c.key === "created_at")
-                  ?.visible && <th className="px-6 py-4">Bergabung</th>}
-                {visibleColumns.find((c) => c.key === "action")?.visible && (
-                  <th className="px-6 py-4 text-right">Aksi</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={visibleColumns.filter((c) => c.visible).length}
-                    className="px-6 py-20 text-center text-slate-500"
-                  >
-                    <div className="flex flex-col justify-center items-center gap-2">
-                      <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-                      <p className="text-xs">Memuat data pengguna...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={visibleColumns.filter((c) => c.visible).length}
-                    className="px-6 py-20 text-center text-slate-500"
-                  >
-                    <div className="flex flex-col justify-center items-center gap-2">
-                      <ListFilter className="h-10 w-10 text-slate-300" />
-                      <p>Tidak ada data user ditemukan.</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    {/* USER INFO */}
-                    {visibleColumns.find((c) => c.key === "user")?.visible && (
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 font-bold overflow-hidden shrink-0 shadow-sm group-hover:border-blue-200 transition-colors">
-                            {user.profile_picture ? (
-                              <img
-                                src={getAvatarUrl(user.profile_picture)}
-                                alt={user.username}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                  e.currentTarget.parentElement?.classList.add(
-                                    "fallback-text",
-                                  );
-                                }}
-                              />
-                            ) : (
-                              <span className="uppercase text-xs">
-                                {user.username?.substring(0, 2)}
-                              </span>
-                            )}
-                            <span className="hidden uppercase text-xs">
-                              {user.username?.substring(0, 2)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                              {user.username}
-                            </p>
-                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">
-                              ID: #{user.id}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                    )}
-
-                    {/* EMAIL */}
-                    {visibleColumns.find((c) => c.key === "email")?.visible && (
-                      <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">
-                        {user.email}
-                      </td>
-                    )}
-
-                    {/* ROLE */}
-                    {visibleColumns.find((c) => c.key === "role")?.visible && (
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border ${
-                            user.role_name === "admin"
-                              ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
-                              : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                          }`}
-                        >
-                          {user.role_name === "admin" ? (
-                            <Shield size={10} />
-                          ) : (
-                            <User size={10} />
-                          )}
-                          {user.role_name || "User"}
-                        </span>
-                      </td>
-                    )}
-
-                    {/* STATUS */}
-                    {visibleColumns.find((c) => c.key === "status")
-                      ?.visible && (
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border ${
-                            user.is_active
-                              ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                              : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${user.is_active ? "bg-green-500" : "bg-red-500"} animate-pulse`}
-                          ></span>
-                          {user.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                    )}
-
-                    {/* JOINED AT */}
-                    {visibleColumns.find((c) => c.key === "created_at")
-                      ?.visible && (
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {user.created_at
-                          ? new Date(user.created_at).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )
-                          : "-"}
-                      </td>
-                    )}
-
-                    {/* ACTION */}
-                    {visibleColumns.find((c) => c.key === "action")
-                      ?.visible && (
-                      <td className="px-6 py-4 text-right">
-                        <ActionMenu
-                          isActive={user.is_active}
-                          currentRole={user.role_name}
-                          onToggle={() => handleToggleStatus(user)}
-                          onDelete={() => confirmDelete(user.id)}
-                          onResend={() => handleResendVerification(user)}
-                          onUpdateRole={(newRole: string) =>
-                            handleUpdateRole(user, newRole)
-                          }
-                        />
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end px-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">
+            Rows per page:
+          </span>
+          <select
+            className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-3 outline-none font-bold dark:text-white"
+            value={pagination.per_page}
+            onChange={(e) =>
+              setPagination({
+                ...pagination,
+                per_page: Number(e.target.value),
+                current_page: 1,
+              })
+            }
+          >
+            {[10, 20, 50].map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
 
-        {/* PAGINATION */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50/50 dark:bg-slate-950/30">
-          <p className="text-xs text-slate-500">
-            Menampilkan{" "}
-            <span className="font-medium text-slate-900 dark:text-white">
-              {users.length}
-            </span>{" "}
-            dari{" "}
-            <span className="font-medium text-slate-900 dark:text-white">
-              {pagination.total}
-            </span>{" "}
-            data
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+            Menyinkronkan Data...
           </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-8 text-xs"
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  current_page: prev.current_page - 1,
-                }))
-              }
-              disabled={pagination.current_page === 1 || isLoading}
-            >
-              <ChevronLeft size={12} className="mr-1" /> Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-8 text-xs"
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  current_page: prev.current_page + 1,
-                }))
-              }
-              disabled={
-                pagination.current_page === pagination.last_page || isLoading
-              }
-            >
-              Next <ChevronRight size={12} className="ml-1" />
-            </Button>
+        </div>
+      ) : (
+        <>
+          {/* MOBILE VIEW */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {users.map((u) => (
+              <div
+                key={u.id}
+                className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative transition-all active:scale-[0.98]"
+              >
+                <div className="flex justify-between items-start mb-6 gap-2">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-slate-50 dark:border-slate-700 shadow-sm">
+                      {u.profile_picture ? (
+                        <img
+                          src={getAvatarUrl(u.profile_picture)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <User className="text-slate-400" size={28} />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="font-black text-slate-900 dark:text-white text-lg leading-tight break-all truncate">
+                        {u.username}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Fingerprint size={12} className="text-slate-400" />
+                        <p className="text-[10px] text-slate-400 font-black uppercase">
+                          ID: #{u.id}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 z-20">
+                    {/* KIRIM userId KE SINI */}
+                    <ActionMenu
+                      userId={u.id}
+                      isActive={u.is_active}
+                      currentRole={u.role_name}
+                      onDelete={() => confirmDelete(u.id)}
+                      onToggle={() => handleToggleStatus(u)}
+                      onResend={() => handleResendVerification(u)}
+                      onUpdateRole={(r: string) => handleUpdateRole(u, r)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t border-slate-50 dark:border-slate-800/50 pt-5">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Email Address
+                    </span>
+                    <span className="text-sm font-bold dark:text-slate-200 break-all">
+                      {u.email}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Peran
+                      </span>
+                      <Badge
+                        className={cn(
+                          "w-fit uppercase text-[9px] font-black px-2 h-6 border-none",
+                          u.role_name === "admin"
+                            ? "bg-purple-500/10 text-purple-600"
+                            : "bg-blue-500/10 text-blue-600",
+                        )}
+                      >
+                        {u.role_name}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Status
+                      </span>
+                      <Badge
+                        className={cn(
+                          "w-fit uppercase text-[9px] font-black px-2 h-6 border-none",
+                          u.is_active
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-red-500/10 text-red-600",
+                        )}
+                      >
+                        {u.is_active ? "Active" : "Disabled"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
+
+          {/* DESKTOP VIEW */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-visible">
+            <table className="w-full text-left text-sm table-auto">
+              <thead className="bg-slate-50 dark:bg-slate-950/50 uppercase text-[10px] tracking-widest font-black text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-5 text-center w-20">Profile</th>
+                  <th className="px-6 py-5">User Account</th>
+                  <th className="px-6 py-5">Email Address</th>
+                  <th className="px-6 py-5 text-center">Role</th>
+                  <th className="px-6 py-5 text-center">Status</th>
+                  <th className="px-6 py-5 text-right w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                {users.map((u) => (
+                  <tr
+                    key={u.id}
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group relative font-medium"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="h-10 w-10 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border dark:border-slate-700 shadow-sm transition-all">
+                        {u.profile_picture ? (
+                          <img
+                            src={getAvatarUrl(u.profile_picture)}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <User className="text-slate-400" size={18} />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        {u.username}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                        ID: #{u.id}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 truncate max-w-[220px]">
+                      {u.email}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "uppercase text-[10px] font-black border-none px-0",
+                          u.role_name === "admin"
+                            ? "text-purple-500"
+                            : "text-blue-500",
+                        )}
+                      >
+                        {u.role_name}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div
+                        className={cn(
+                          "inline-flex items-center gap-2 text-xs font-bold",
+                          u.is_active ? "text-emerald-600" : "text-red-500",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full animate-pulse",
+                            u.is_active ? "bg-emerald-500" : "bg-red-500",
+                          )}
+                        />
+                        {u.is_active ? "Active" : "Disabled"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {/* KIRIM userId KE SINI */}
+                      <ActionMenu
+                        userId={u.id}
+                        isActive={u.is_active}
+                        currentRole={u.role_name}
+                        onDelete={() => confirmDelete(u.id)}
+                        onToggle={() => handleToggleStatus(u)}
+                        onResend={() => handleResendVerification(u)}
+                        onUpdateRole={(r: string) => handleUpdateRole(u, r)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* Pagination */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-4">
+        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          Page {pagination.current_page} of {pagination.last_page}{" "}
+          <span className="h-1 w-1 rounded-full bg-slate-200 dark:bg-slate-800" />{" "}
+          {pagination.total} Users Total
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none h-12 rounded-2xl font-bold dark:bg-slate-900"
+            disabled={pagination.current_page === 1}
+            onClick={() =>
+              setPagination({
+                ...pagination,
+                current_page: pagination.current_page - 1,
+              })
+            }
+          >
+            <ChevronLeft size={18} className="mr-1" /> Prev
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none h-12 rounded-2xl font-bold dark:bg-slate-900"
+            disabled={pagination.current_page === pagination.last_page}
+            onClick={() =>
+              setPagination({
+                ...pagination,
+                current_page: pagination.current_page + 1,
+              })
+            }
+          >
+            Next <ChevronRight size={18} className="ml-1" />
+          </Button>
         </div>
       </div>
-
-      <AddUserModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => {
-          fetchData();
-          fetchSummary();
-        }}
-      />
 
       <ConfirmDialog
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Hapus User?"
-        description="Tindakan ini tidak dapat dibatalkan. User yang dihapus akan masuk ke arsip (soft delete)."
-        confirmText="Ya, Hapus"
+        title="Arsipkan User?"
+        description="Tindakan ini tidak dapat dibatalkan secara instan."
+        confirmText="Ya, Arsipkan"
         variant="danger"
         isLoading={isDeleting}
+      />
+      <AddUserModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchData}
       />
     </div>
   );
 }
 
-// --- SUB COMPONENT FOR STATS (ADAPTIVE) ---
-function StatCard({ title, value, icon, border, indicator }: any) {
+function StatCard({ title, value, icon, indicator }: any) {
   return (
-    <div
-      className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border shadow-sm ${border || "border-slate-200 dark:border-slate-800"} relative overflow-hidden group hover:shadow-md transition-all`}
-    >
+    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-all duration-300 hover:border-blue-500/50">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">
             {title}
           </p>
-          <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
             {value}
           </h3>
         </div>
-        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-inner">
           {icon}
         </div>
       </div>
       {indicator && (
         <div
-          className={`absolute top-6 right-16 w-2 h-2 rounded-full ${indicator} animate-pulse`}
+          className={cn(
+            "absolute top-6 right-16 w-2 h-2 rounded-full animate-pulse",
+            indicator,
+          )}
         ></div>
       )}
-      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center text-xs text-slate-500">
-        <span className="text-green-600 dark:text-green-400 font-medium mr-1 flex items-center">
-          <Users size={12} className="mr-1" /> Live Data
-        </span>
-        from database
-      </div>
     </div>
   );
 }

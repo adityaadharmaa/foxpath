@@ -26,6 +26,10 @@ export default function UserNav() {
     }
   };
 
+  const handleClickSettings = () => {
+    navigate("/admin/settings");
+  };
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -39,10 +43,16 @@ export default function UserNav() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const getAvatarUrl = (path: string) => {
+  const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    return `${import.meta.env.API_BASE_URL || "http://localhost:8000"}/storage/${path}`;
+
+    const cleanPath = path.startsWith("/") ? path.substring(1) : path;
+
+    const storageBase =
+      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
+
+    return `${storageBase}/${cleanPath}`;
   };
 
   useEffect(() => {
@@ -112,7 +122,10 @@ export default function UserNav() {
             >
               <User size={16} /> Your Profile
             </button>
-            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+            <button
+              onClick={handleClickSettings}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
               <Settings size={16} /> Settings
             </button>
           </div>

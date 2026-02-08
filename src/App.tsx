@@ -19,6 +19,13 @@ import ProgramManagementPage from "./pages/admin/program";
 import ApplicantManagementPage from "./pages/admin/applicants";
 import CriteriaManagementPage from "./pages/admin/criteria/CriteriaManagementPage";
 import DashboardPage from "./pages/admin/dashboard/dashboard";
+import UserProgram from "./pages/user/program/UserProgram";
+import UserApplication from "./pages/user/applications/UserApplication";
+import ApplicationDetail from "./pages/user/applications/ApplicationDetail";
+import FindPrograms from "./pages/user/program/FindProgram";
+import ProgramDetail from "./pages/user/program/ProgramDetail";
+import Settings from "./pages/user/settings/Settings";
+import NotificationPage from "./pages/notification/NotificationPage";
 
 export default function App() {
   return (
@@ -37,10 +44,12 @@ export default function App() {
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard" element={<DashboardPage />} />
+            <Route path="/admin/settings" element={<Settings />} />
             <Route path="/admin/profile" element={<ProfilePage />} />
             <Route path="/admin/applicants" element={<UserManagementPage />} />
             <Route path="/admin/roles" element={<RoleManagementPage />} />
             <Route path="/admin/programs" element={<ProgramManagementPage />} />
+            <Route path="/admin/notifications" element={<NotificationPage />} />
             <Route
               path="/admin/applications"
               element={<ApplicantManagementPage />}
@@ -56,6 +65,15 @@ export default function App() {
           <Route element={<UserLayout />}>
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/profile" element={<ProfilePage />} />
+            <Route path="/user/programs" element={<FindPrograms />} />
+            <Route path="/user/programs/:id" element={<ProgramDetail />} />
+            <Route path="/user/applications" element={<UserApplication />} />
+            <Route path="/user/settings" element={<Settings />} />
+            <Route path="/user/notifications" element={<NotificationPage />} />
+            <Route
+              path="/user/applications/:id"
+              element={<ApplicationDetail />}
+            />
           </Route>
         </Route>
       </Routes>

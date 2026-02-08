@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-// Pastikan komponen UI Anda support Dialog/Modal, sesuaikan import jika perlu
 import { Button } from "@/components/ui/button";
 import { applicantService } from "@/services/applicantService";
 import {
@@ -23,6 +22,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface ApplicantDetailModalProps {
   isOpen: boolean;
@@ -31,10 +32,13 @@ interface ApplicantDetailModalProps {
 }
 
 const getScoreColor = (val: number) => {
-  if (val >= 85) return "text-green-600 bg-green-50 border-green-200";
-  if (val >= 70) return "text-blue-600 bg-blue-50 border-blue-200";
-  if (val >= 50) return "text-amber-600 bg-amber-50 border-amber-200";
-  return "text-red-600 bg-red-50 border-red-200";
+  if (val >= 85)
+    return "text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20";
+  if (val >= 70)
+    return "text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20";
+  if (val >= 50)
+    return "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20";
+  return "text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20";
 };
 
 export default function ApplicantDetailModal({
@@ -47,16 +51,20 @@ export default function ApplicantDetailModal({
 
   const isRejected = data?.status === "rejected";
   const isAccepted = data?.status === "accepted";
-
   const isApplicationEditable = data?.status === "submitted";
 
+  // FIX: Menggunakan VITE_STORAGE_URL dari .env Anda
   const getFileUrl = (path: string) => {
     if (!path) return "#";
     if (path.startsWith("http")) return path;
-    return `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/storage/${path}`;
+
+    const storageBase =
+      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
+    const cleanPath = path.startsWith("/") ? path.substring(1) : path;
+
+    return `${storageBase}/${cleanPath}`;
   };
 
-  // Helper format tanggal
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("id-ID", {
@@ -68,7 +76,6 @@ export default function ApplicantDetailModal({
     });
   };
 
-  // Helper format tanggal pendek (untuk placement)
   const formatDateShort = (dateString: string | null) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("id-ID", {
@@ -86,6 +93,21 @@ export default function ApplicantDetailModal({
     }
   }, [isOpen, applicationId]);
 
+  const fetchDetail = async () => {
+    setIsLoading(true);
+    try {
+      const response = await applicantService.getApplicationDetail(
+        applicationId!,
+      );
+      setData(response.data.data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal memuat data.");
+      onClose();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleReviewDocument = async (
     docId: number,
     status: "approved" | "rejected",
@@ -102,555 +124,367 @@ export default function ApplicantDetailModal({
       toast.success(`Dokumen ditandai sebagai ${status}`, { id: toastId });
       fetchDetail();
     } catch (error: any) {
-      console.error(error);
       toast.error("Gagal mereview document.", { id: toastId });
-    }
-  };
-
-  const fetchDetail = async () => {
-    setIsLoading(true);
-    try {
-      const response = await applicantService.getApplicationDetail(
-        applicationId!,
-      );
-      toast.success(response.data?.message);
-      setData(response.data.data);
-    } catch (error: any) {
-      const msg = error.response?.data?.message;
-      console.error(msg);
-      toast.error(msg);
-      onClose();
-    } finally {
-      setIsLoading(false);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-4">
-        {/* HEADER */}
-        <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-6xl rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] mx-auto">
+        {/* MODAL HEADER */}
+        <div className="flex justify-between items-center p-5 md:p-6 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-20">
+          <div className="space-y-1">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
               Detail Pelamar
             </h2>
-            <p className="text-xs text-slate-500">
-              Informasi lengkap, hasil seleksi, dan dokumen.
+            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+              Informasi Berkas & Hasil Seleksi
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-red-500 transition-all active:scale-90"
           >
-            <X size={20} className="text-slate-500" />
+            <X size={20} />
           </button>
         </div>
 
-        {/* CONTENT SCROLLABLE */}
-        <div className="overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-950/50 flex-1">
+        {/* MODAL CONTENT */}
+        <div className="overflow-y-auto p-4 md:p-8 bg-slate-50/30 dark:bg-slate-950/20 flex-1 custom-scrollbar">
           {isLoading || !data ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Loader2 className="animate-spin text-blue-500 h-10 w-10 mb-2" />
-              <p className="text-slate-500 text-sm">Memuat data...</p>
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                Sinkronisasi Data...
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* --- KOLOM KIRI (Profile, Education, SAW Result) --- */}
-              <div className="lg:col-span-1 space-y-6">
-                {/* 1. Kartu Profile */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <div className="flex flex-col items-center text-center mb-4">
-                    <div className="h-24 w-24 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden mb-3">
-                      {data.user?.profile?.profile_picture ? (
-                        <img
-                          src={getFileUrl(data.user.profile.profile_picture)}
-                          className="w-full h-full object-cover"
-                          alt="Profile"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400">
-                          <User size={40} />
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                      {data.user?.profile?.full_name || "Tanpa Nama"}
-                    </h3>
-                    <p className="text-sm text-slate-500">{data.user?.email}</p>
-
-                    <div className="mt-4">
-                      <span
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
-                          data.status === "accepted"
-                            ? "bg-green-100 text-green-700 border-green-200"
-                            : data.status === "rejected"
-                              ? "bg-red-100 text-red-700 border-red-200"
-                              : data.status === "scored"
-                                ? "bg-violet-100 text-violet-700 border-violet-200"
-                                : data.status === "calculated"
-                                  ? "bg-sky-100 text-sky-700 border-sky-200"
-                                  : data.status === "verified"
-                                    ? "bg-blue-100 text-blue-700 border-blue-500"
-                                    : "bg-orange-100 text-orange-700 border-orange-200"
-                        }`}
-                      >
-                        {data.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                    <div className="flex items-start gap-3 text-slate-600 dark:text-slate-400">
-                      <Phone
-                        size={16}
-                        className="mt-0.5 shrink-0 text-blue-500"
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* KOLOM KIRI: Profil & SAW */}
+              <div className="lg:col-span-4 space-y-6">
+                {/* Profile Card */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+                  <div className="h-24 w-24 rounded-2xl bg-slate-100 dark:bg-slate-800 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden mx-auto mb-4">
+                    {data.user?.profile?.profile_picture ? (
+                      <img
+                        src={getFileUrl(data.user.profile.profile_picture)}
+                        className="w-full h-full object-cover"
+                        alt="Avatar"
                       />
-                      <span>{data.user?.profile?.phone || "-"}</span>
+                    ) : (
+                      <User className="w-full h-full p-4 text-slate-300" />
+                    )}
+                  </div>
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight break-all uppercase">
+                    {data.user?.profile?.full_name || "Tanpa Nama"}
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1 break-all">
+                    {data.user?.email}
+                  </p>
+
+                  <Badge
+                    variant="outline"
+                    className="mt-4 px-4 py-1 font-black uppercase tracking-widest text-[9px] dark:border-slate-700 dark:text-slate-300"
+                  >
+                    Status: {data.status}
+                  </Badge>
+
+                  <div className="grid grid-cols-1 gap-3 mt-6 pt-6 border-t border-slate-50 dark:border-slate-800 text-left">
+                    <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
+                      <Phone size={14} className="text-blue-500" />
+                      <span className="text-xs font-bold">
+                        {data.user?.profile?.phone || "-"}
+                      </span>
                     </div>
                     <div className="flex items-start gap-3 text-slate-600 dark:text-slate-400">
                       <MapPin
-                        size={16}
-                        className="mt-0.5 shrink-0 text-red-500"
+                        size={14}
+                        className="text-red-500 mt-0.5 shrink-0"
                       />
-                      <span className="line-clamp-2">
-                        {data.user?.profile?.address || "-"}
+                      <span className="text-xs font-medium leading-relaxed">
+                        {data.user?.profile?.address ||
+                          "Alamat tidak tersedia."}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Hasil Seleksi (SAW) - NEW! */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-linear-to-bl from-yellow-100 to-transparent rounded-bl-full -mr-2 -mt-2"></div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2 relative z-10">
-                    <Trophy size={18} className="text-yellow-500" /> Hasil
-                    Seleksi (SAW)
+                {/* SAW Result Card */}
+                <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-600/20 relative overflow-hidden">
+                  <div className="absolute -top-4 -right-4 h-24 w-24 bg-white/10 rounded-full blur-2xl"></div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mb-6 opacity-80">
+                    <Trophy size={14} /> Hasil Akhir Seleksi
                   </h4>
-
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg text-center">
-                      <p className="text-xs text-slate-500 uppercase font-semibold mb-1">
-                        Rank
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase opacity-70">
+                        Peringkat
                       </p>
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                          #{data.rank || "-"}
-                        </span>
-                      </div>
+                      <p className="text-3xl font-black">#{data.rank || "-"}</p>
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg text-center">
-                      <p className="text-xs text-slate-500 uppercase font-semibold mb-1">
-                        Final Score
+                    <div className="space-y-1 text-right">
+                      <p className="text-[9px] font-black uppercase opacity-70">
+                        Skor SAW
                       </p>
-                      <div className="flex items-center justify-center gap-1">
-                        <Star
-                          size={16}
-                          className="text-yellow-500 fill-yellow-500"
-                        />
-                        <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                          {data.final_score
-                            ? Number(data.final_score).toFixed(4)
-                            : "-"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-500">Assessment Date:</span>
-                      <span className="font-medium text-slate-700 dark:text-slate-300">
-                        {formatDate(data.scored_at)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Decision Date:</span>
-                      <span className="font-medium text-slate-700 dark:text-slate-300">
-                        {formatDate(data.decided_at)}
-                      </span>
+                      <p className="text-3xl font-black">
+                        {data.final_score
+                          ? Number(data.final_score).toFixed(4)
+                          : "-"}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* 3. Pendidikan */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <h4 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                    <GraduationCap size={18} className="text-blue-500" />{" "}
-                    Pendidikan
+                {/* Pendidikan */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-4">
+                    <GraduationCap size={14} className="text-blue-500" />{" "}
+                    Riwayat Pendidikan
                   </h4>
                   {data.user?.profile_education ? (
-                    <div className="space-y-3 text-sm">
+                    <div className="space-y-4">
                       <div>
-                        <p className="text-xs text-slate-500 mb-0.5">
+                        <p className="text-[10px] font-black uppercase text-slate-500 mb-1">
                           Institusi
                         </p>
-                        <p className="font-medium text-slate-800 dark:text-slate-200">
+                        <p className="text-xs font-bold text-slate-900 dark:text-slate-200">
                           {data.user.profile_education.institution_name}
                         </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 pt-2">
                         <div>
-                          <p className="text-xs text-slate-500 mb-0.5">
-                            Jurusan
+                          <p className="text-[10px] font-black uppercase text-slate-500 mb-1">
+                            IPK / Rata-rata
                           </p>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">
-                            {data.user.profile_education.major}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 mb-0.5">
-                            IPK / Nilai
-                          </p>
-                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold">
+                          <Badge
+                            variant="secondary"
+                            className="font-black text-blue-600 dark:text-blue-400"
+                          >
                             {data.user.profile_education.gpa ||
                               data.user.profile_education.average_score ||
                               "-"}
-                          </span>
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-slate-500 mb-1">
+                            Jurusan
+                          </p>
+                          <p className="text-xs font-bold">
+                            {data.user.profile_education.major || "-"}
+                          </p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-400 italic">
-                      Data pendidikan belum lengkap.
+                    <p className="text-xs font-bold text-slate-400 italic">
+                      Informasi pendidikan belum diisi.
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* --- KOLOM KANAN (Program, Documents, Placement Info) --- */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* 4. Info Program & Placement Info */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <Calendar size={18} className="text-indigo-500" />{" "}
-                      Informasi Program
-                    </h4>
-                    <span className="text-xs text-slate-500">
-                      ID: #{data.id}
-                    </span>
-                  </div>
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-400">
+              {/* KOLOM KANAN: Program & Dokumen */}
+              <div className="lg:col-span-8 space-y-6">
+                {/* Info Program */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 md:p-8">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="space-y-1">
+                      <Badge className="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 font-black h-6 px-3 border-none">
+                        PROGRAM PILIHAN
+                      </Badge>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-2">
                         {data.program?.name}
                       </h3>
-                      <span className="text-xs bg-slate-100 px-2 py-1 rounded border border-slate-200 text-slate-600">
-                        Kuota: <b>{data.program?.capacity || "-"}</b>
-                      </span>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-5 leading-relaxed">
-                      {data.program?.description}
-                    </p>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-black uppercase dark:border-slate-700"
+                    >
+                      Quota: {data.program?.capacity || "∞"}
+                    </Badge>
+                  </div>
 
-                    {/* Timeline Pelamaran */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
-                        <p className="text-xs text-slate-500 mb-1">
-                          Tanggal Melamar
-                        </p>
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                          {formatDate(data.submitted_at)}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
-                        <p className="text-xs text-slate-500 mb-1">
-                          Verifikasi Admin
-                        </p>
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                          {formatDate(data.verified_at)}
-                        </p>
-                      </div>
-
-                      {/* LOGIC STATUS: Diterima vs Ditolak */}
-                      <div
-                        className={`p-3 rounded-lg border ${
-                          isRejected
-                            ? "bg-red-50 border-red-100 dark:bg-red-900/20 dark:border-red-800"
-                            : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"
-                        }`}
-                      >
-                        <p
-                          className={`text-xs mb-1 ${isRejected ? "text-red-600" : "text-slate-500"}`}
-                        >
-                          {isRejected ? "Ditolak Pada" : "Diterima Pada"}
-                        </p>
-                        <p
-                          className={`text-sm font-semibold ${isRejected ? "text-red-700" : "text-slate-800 dark:text-slate-200"}`}
-                        >
-                          {/* Jika Rejected ambil decided_at, Jika Accepted ambil admitted_at */}
-                          {formatDate(
-                            isRejected ? data.decided_at : data.admitted_at,
-                          )}
-                        </p>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        Melamar Pada
+                      </p>
+                      <p className="text-xs font-bold">
+                        {formatDate(data.submitted_at)}
+                      </p>
                     </div>
-
-                    {/* ALERT PENOLAKAN (Khusus Rejected) */}
-                    {isRejected && (
-                      <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4 flex gap-3">
-                        <XCircle
-                          className="text-red-500 shrink-0 mt-0.5"
-                          size={20}
-                        />
-                        <div className="text-sm text-red-800 dark:text-red-300">
-                          <p className="font-bold mb-1">
-                            Hasil Seleksi: Tidak Lolos
-                          </p>
-                          <p>
-                            Mohon maaf, peringkat akhir Anda adalah{" "}
-                            <strong>#{data.rank}</strong>. Program ini hanya
-                            menerima <strong>{data.program?.capacity}</strong>{" "}
-                            kandidat terbaik sesuai kuota yang tersedia.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Placement Info (HANYA MUNCUL JIKA ACCEPTED) */}
-                    {isAccepted &&
-                      (data.placement_start_at || data.placement_end_at) && (
-                        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800">
-                          <h5 className="font-semibold text-indigo-800 dark:text-indigo-300 text-sm mb-3 flex items-center gap-2">
-                            <Clock size={16} /> Jadwal Penempatan Magang
-                          </h5>
-                          <div className="flex items-center gap-3 text-sm">
-                            <div className="flex-1">
-                              <span className="block text-xs text-indigo-600/70 dark:text-indigo-400/70 uppercase font-bold">
-                                Mulai
-                              </span>
-                              <span className="font-medium text-slate-900 dark:text-white">
-                                {formatDateShort(data.placement_start_at)}
-                              </span>
-                            </div>
-                            <div className="text-indigo-300">➜</div>
-                            <div className="flex-1">
-                              <span className="block text-xs text-indigo-600/70 dark:text-indigo-400/70 uppercase font-bold">
-                                Selesai
-                              </span>
-                              <span className="font-medium text-slate-900 dark:text-white">
-                                {formatDateShort(data.placement_end_at)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        Status SAW
+                      </p>
+                      <p className="text-xs font-bold text-blue-600">
+                        {data.final_score ? "Terkalkulasi" : "Menunggu Dinilai"}
+                      </p>
+                    </div>
+                    <div
+                      className={cn(
+                        "p-4 rounded-2xl border",
+                        isRejected
+                          ? "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-800"
+                          : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800",
                       )}
+                    >
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        {isRejected ? "Ditolak Pada" : "Diterima Pada"}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-xs font-bold",
+                          isRejected && "text-red-600",
+                        )}
+                      >
+                        {formatDate(
+                          isRejected ? data.decided_at : data.admitted_at,
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* 5. Dokumen */}
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <FileText size={20} className="text-orange-500" /> Dokumen
-                    Pendukung
+                {/* Dokumen Section */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 ml-1">
+                    <FileText size={14} className="text-orange-500" /> Dokumen
+                    Administrasi
                   </h4>
-
                   {data.documents && data.documents.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {data.documents.map((doc: any, idx: number) => (
                         <div
                           key={idx}
-                          className={`group p-4 bg-white dark:bg-slate-900 border rounded-xl transition-all shadow-sm ${
+                          className={cn(
+                            "p-5 bg-white dark:bg-slate-900 border-2 rounded-[1.8rem] transition-all relative overflow-hidden",
                             doc.status === "approved"
-                              ? "border-green-200 bg-green-50/30" // Ganti 'valid' -> 'approved'
+                              ? "border-emerald-500/20 bg-emerald-500/5"
                               : doc.status === "rejected"
-                                ? "border-red-200 bg-red-50/30" // Ganti 'invalid' -> 'rejected'
-                                : "border-slate-200 hover:border-blue-300"
-                          }`}
+                                ? "border-red-500/20 bg-red-500/5"
+                                : "border-slate-200 dark:border-slate-800",
+                          )}
                         >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="h-10 w-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center shrink-0">
+                          <div className="flex items-start justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="h-11 w-11 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 shadow-inner">
                                 <FileText size={20} />
                               </div>
-                              <div className="overflow-hidden">
-                                <p className="font-semibold text-sm truncate text-slate-800 dark:text-slate-200 capitalize">
-                                  {doc.type
-                                    ? doc.type.replace(/_/g, " ")
-                                    : "Dokumen"}
+                              <div className="min-w-0">
+                                <p className="font-black text-xs uppercase tracking-tight text-slate-900 dark:text-white truncate">
+                                  {doc.type.replace(/_/g, " ")}
                                 </p>
-
-                                {/* Status Badge */}
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  {doc.status === "approved" && (
-                                    <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
-                                      <CheckCircle2 size={10} /> APPROVED
-                                    </span>
+                                <Badge
+                                  className={cn(
+                                    "mt-1 text-[8px] font-black uppercase px-2 h-5 border-none",
+                                    doc.status === "approved"
+                                      ? "bg-emerald-500"
+                                      : doc.status === "rejected"
+                                        ? "bg-red-500"
+                                        : "bg-amber-500",
                                   )}
-                                  {doc.status === "rejected" && (
-                                    <span className="text-[10px] font-bold text-red-600 flex items-center gap-1">
-                                      <XCircle size={10} /> REJECTED
-                                    </span>
-                                  )}
-                                  {(!doc.status ||
-                                    doc.status === "pending") && (
-                                    <span className="text-[10px] font-bold text-orange-600 flex items-center gap-1">
-                                      <AlertCircle size={10} /> PENDING
-                                    </span>
-                                  )}
-                                </div>
+                                >
+                                  {doc.status}
+                                </Badge>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Action Buttons Row */}
-                          <div className="flex flex-col gap-2">
-                            {/* View & Download */}
-                            <div className="flex gap-2">
+                            <div className="flex gap-1">
                               <a
                                 href={getFileUrl(doc.file_path)}
                                 target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 inline-flex justify-center items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors"
+                                className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-blue-500 transition-all active:scale-90"
                               >
-                                <ExternalLink size={12} /> Lihat
+                                <ExternalLink size={16} />
                               </a>
                               <a
                                 href={getFileUrl(doc.file_path)}
                                 download
-                                className="flex-1 inline-flex justify-center items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md text-xs font-medium transition-colors"
+                                className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 transition-all active:scale-90"
                               >
-                                <Download size={12} /> Unduh
+                                <Download size={16} />
                               </a>
                             </div>
-
-                            {/* Review Actions (Hanya muncul jika belum final atau mau diubah) */}
-                            {isApplicationEditable &&
-                            doc.status === "pending" ? (
-                              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                <button
-                                  // PERBAIKAN: Kirim string 'approved'
-                                  onClick={() =>
-                                    handleReviewDocument(doc.id, "approved")
-                                  }
-                                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-bold transition-colors ${
-                                    doc.status === "approved"
-                                      ? "bg-green-600 text-white shadow-sm"
-                                      : "bg-white border border-slate-200 text-slate-500 hover:bg-green-50 hover:text-green-600 hover:border-green-200"
-                                  }`}
-                                >
-                                  <CheckCircle2 size={14} /> Approve
-                                </button>
-
-                                <button
-                                  // PERBAIKAN: Kirim string 'rejected'
-                                  onClick={() =>
-                                    handleReviewDocument(doc.id, "rejected")
-                                  }
-                                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-bold transition-colors ${
-                                    doc.status === "rejected"
-                                      ? "bg-red-600 text-white shadow-sm"
-                                      : "bg-white border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                                  }`}
-                                >
-                                  <XCircle size={14} /> Reject
-                                </button>
-                              </div>
-                            ) : (
-                              // Bagian status readonly
-                              <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 text-center">
-                                {doc.status === "pending" ? (
-                                  <span className="text-[10px] text-slate-400 italic">
-                                    Menunggu (Aplikasi {data?.status})
-                                  </span>
-                                ) : (
-                                  <span
-                                    className={`text-[10px] font-bold italic ${doc.status === "approved" ? "text-green-600" : "text-red-600"}`}
-                                  >
-                                    {doc.status === "approved"
-                                      ? "Dokumen Disetujui"
-                                      : "Dokumen Ditolak"}
-                                  </span>
-                                )}
-                              </div>
-                            )}
                           </div>
 
-                          {/* Tampilkan Review Note jika ada */}
-                          {doc.review_note && (
-                            <div className="mt-2 text-[10px] text-red-500 bg-red-50 p-2 rounded border border-red-100 italic">
-                              Note: "{doc.review_note}"
+                          {isApplicationEditable && doc.status === "pending" ? (
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                              <Button
+                                onClick={() =>
+                                  handleReviewDocument(doc.id, "approved")
+                                }
+                                variant="outline"
+                                className="h-9 rounded-xl text-[10px] font-bold uppercase border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:bg-transparent dark:hover:bg-emerald-900/20"
+                              >
+                                <CheckCircle2 size={14} className="mr-1" />{" "}
+                                Approve
+                              </Button>
+                              <Button
+                                onClick={() =>
+                                  handleReviewDocument(doc.id, "rejected")
+                                }
+                                variant="outline"
+                                className="h-9 rounded-xl text-[10px] font-bold uppercase border-red-500 text-red-600 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/20"
+                              >
+                                <XCircle size={14} className="mr-1" /> Reject
+                              </Button>
                             </div>
+                          ) : (
+                            doc.review_note && (
+                              <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/30">
+                                <p className="text-[10px] text-red-600 font-bold italic line-clamp-2">
+                                  " {doc.review_note} "
+                                </p>
+                              </div>
+                            )
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-8 border-2 border-dashed border-slate-200 rounded-xl text-center bg-slate-50/50">
-                      <p className="text-slate-400 text-sm">
-                        Tidak ada dokumen yang dilampirkan.
+                    <div className="p-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-center">
+                      <p className="text-slate-400 font-bold uppercase text-[10px]">
+                        Dokumen Kosong
                       </p>
                     </div>
                   )}
                 </div>
-                {data.scores && data.scores.length > 0 ? (
-                  <div className="mt-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Award
-                        className="flex items-center gap-2 mb-3"
-                        size={20}
-                      />
-                      <h3 className="font-bold text-slate-800">
-                        Hasil Penilaian (SAW)
-                      </h3>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {data.scores.map((score: any) => (
-                          <div
-                            key={score.id}
-                            className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between"
-                          >
-                            <div>
-                              <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider">
-                                {score.criteria?.name || "Kriteria"}
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                Bobot: {score.criteria?.weight * 100}%
-                              </p>
-                            </div>
-                            <div className="mt-3 flex justify-between items-end">
-                              <span
-                                className={`text-sm font-bold px-2 py-1 rounded-md border ${getScoreColor(score.value)}`}
-                              >
-                                {score.value}
-                              </span>
-                              <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                                {score.criteria?.type === "benefit"
-                                  ? "Benefit"
-                                  : "Cost"}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
 
-                      {data.final_score && (
-                        <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
-                          <div className="flex gap-2 items-center text-slate-600">
-                            <TrendingUp size={18} />
-                            <span className="text-sm font-medium">
-                              Nilai Akhir (SAW) :
-                            </span>
+                {/* Skor Kriteria SAW */}
+                {data.scores && data.scores.length > 0 && (
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-6">
+                      <Award size={14} className="text-purple-500" /> Evaluasi
+                      Kriteria
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {data.scores.map((score: any) => (
+                        <div
+                          key={score.id}
+                          className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center"
+                        >
+                          <div>
+                            <p className="text-[9px] font-black uppercase text-slate-500">
+                              {score.criteria?.name}
+                            </p>
+                            <p className="text-[8px] font-bold text-slate-400">
+                              Weight: {score.criteria?.weight * 100}%
+                            </p>
                           </div>
-                          <div className="text-2xl font-bold text-purple-700">
-                            {Number(data.final_score).toFixed(4)}
-                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-black h-8 w-10 justify-center text-xs border-2",
+                              getScoreColor(score.value),
+                            )}
+                          >
+                            {score.value}
+                          </Badge>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="mt-6 p-6 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
-                    <Award className="h-10 w-10 mb-2 opacity-50" />
-                    <p className="text-sm font-medium">
-                      Belum ada data penilaian.
-                    </p>
-                    <p className="text-xs">
-                      Silakan input nilai wawancara terlebih dahulu.
-                    </p>
                   </div>
                 )}
               </div>
@@ -658,10 +492,13 @@ export default function ApplicantDetailModal({
           )}
         </div>
 
-        {/* FOOTER */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
-          <Button onClick={onClose} variant="outline" className="min-w-25">
-            Tutup
+        {/* MODAL FOOTER */}
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+          <Button
+            onClick={onClose}
+            className="w-full sm:w-auto h-12 px-10 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-xl"
+          >
+            Tutup Dashboard
           </Button>
         </div>
       </div>

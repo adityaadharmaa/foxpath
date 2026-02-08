@@ -54,7 +54,16 @@ export const programService = {
   },
 
   // User Service
+  getAllPrograms: async () => {
+    return await apiClient.get("/user/programs/all");
+  },
   getAvailablePrograms: async (params?: any) => {
-    return await apiClient.get("/user/prorams", { params });
+    return await apiClient.get("/user/programs", { params });
+  },
+  // getProgramDetail: async (id: number) => {
+  //   return await apiClient.get(`/admin/programs/${id}`);
+  // },
+  getProgramDetails: async (id: number) => {
+    return await apiClient.get(`/user/programs/detail/${id}`);
   },
 };

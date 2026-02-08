@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form"
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod"
-import { redirect, useNavigate } from "react-router-dom";
+import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,185 +12,245 @@ import { Label } from "@/components/ui/label";
 import { authService } from "@/services/authService";
 
 const loginSchema = z.object({
-    login: z.string().min(1, "Email atau username wajib diisi"),
-    password: z.string().min(8, "Password wajid diisi"),
-    remember_me: z.boolean().optional()
-})
+  login: z.string().min(1, "Email atau username wajib diisi"),
+  password: z.string().min(8, "Password wajid diisi"),
+  remember_me: z.boolean().optional(),
+});
 
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
-    const navigate = useNavigate()
-    const[isLoading, setIsLoading] = useState(false)
-    const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-    const {
-        register,
-        handleSubmit,
-        formState: {errors}
-    } = useForm<LoginFormValues>({
-        resolver: zodResolver(loginSchema),
-        defaultValues: { remember_me: false }
-    })
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { remember_me: false },
+  });
 
-    const onSubmit = async (data: LoginFormValues) => {
-        setIsLoading(true)
-        try{
-            const response = await authService.login(data)
+  const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true);
+    try {
+      const response = await authService.login(data);
 
-            if(response.status === "success"){
-                // const msg = success.reponse?.data?.message || "Berhasil login!"
-                toast.success(response.message)
-                authService.setSession(response.token.access_token, response.data.user)
-                navigate(response.meta.redirect_to, { replace:true })
-            }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal login!"
-
-            if (error.response?.status === 403) {
-                toast.warning(msg);
-            } else {
-                toast.error(msg);
-            }
-        } finally {
-            setIsLoading(false)
-        }
+      if (response.status === "success") {
+        toast.success(response.message);
+        authService.setSession(response.token.access_token, response.data.user);
+        navigate(response.meta.redirect_to, { replace: true });
+      }
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      const msg = errorData?.message || "Terjadi kesalahan pada server.";
+      if (error.response?.status === 403) {
+        toast.warning(msg);
+      } else if (error.response?.status === 401) {
+        toast.error("Password atau email salah");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <div className="mn-8">
-                <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center shadow-inner">
-                    <span className="text-gray-500 font-bold text-xl">FP</span>
-                </div>
-            </div>
-
-            <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Masuk ke FoxPath</h1>
-                    <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                        Silahkan masuk untuk mengakses portal pendaftaran magang dan memantau hasil seleksi metode SAW.
-                    </p>
-
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                        <div className="space-y">
-                            <Label htmlFor="login" className="text-gray-600 font-normal">Email atau Username</Label>
-                            <Input 
-                                id="login"
-                                placeholder="user / user@gmail.com"
-                                {...register("login")}
-                                error={errors.login?.message}
-                                className="bg-gray-50 border-gray-200 h-11 rounded-lg focus:bg-white transition-colors"
-                            />
-                        </div>
-
-                        <div className="space-y-1 relative">
-                            <div className="flex justify-between items-center mb-1">
-                                <Label htmlFor="password" className="text-gray-600 font-normal">Password</Label>
-                                <button 
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 font-medium transition-colors"
-                            >
-                                {showPassword ? <EyeOff size={14}/> : <Eye size={14} />}
-                                {showPassword ? "Sembunyikan" : "Tampilkan"}
-                            </button>
-                            </div>
-
-                            <Input 
-                                id="password"
-                                type={showPassword ? "text" : "password"}
-                                placeholder="••••••••"
-                                {...register("password")}
-                                error={errors.password?.message}
-                                className="bg-gray-50 border-gray-200 h-11 rounded-lg focus:bg-white transition-colors"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                            <div className="flex items-center gap-2">
-                                <input 
-                                type="checkbox" 
-                                id="remember_me"
-                                className="h-4 w-4 rounder border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer" 
-                                { ...register("remember_me") }
-                            />
-                            <label 
-                                htmlFor="remember_me" 
-                                className="text-sm text-gray-600 cursor-pointer select-none font-medium"
-                            >
-                                Ingat Saya
-                            </label>
-                            </div>
-                        </div>
-                        <div className="flex-flex-col sm:flex-row items-center gap-4 pt-2">
-                            <Button
-                                type="submit"
-                                isLoading={isLoading}
-                                className="w-full sw:auto px-8 rounded-full bg-gray-400 hover:bg-gray-500 text-white font-semibold h-11"
-                            >
-                                Sign In
-                            </Button>
-
-                            <a href="/forgot-password" className="text-sm font-semibold text-gray-800 hover:underline">
-                                Lupa password anda?
-                            </a>
-                        </div>
-
-                        <div className="relative py-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-gray-200" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-gray-500">Atau masuk dengan</span>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <button type="button" className="flex items-center justify-center gap-2 h-10 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                                <FacebookIcon className="w-5 h-5 text-blue-600" />
-                                <span className="text-sm font-medium text-gray-600">Facebook</span>
-                            </button>
-                            <button type="button" className="flex items-center justify-center gap-2 h-10 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                                <GoogleIcon className="w-5 h-5" />
-                                <span className="text-sm font-medium text-gray-600">Google</span>
-                            </button>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-6 leading-relaxed">
-                            Belum terdaftar? Dapatkan akses eksklusif ke lowongan magang dan update status seleksi real-time.
-                            <a href="/register" className="text-gray-900 font-bold hover:underline ml-1">
-                                Daftar sekarang
-                            </a>
-                        </p>
-
-                        <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-                            <div className="text-xs text-gray-400">
-                                Sudah daftar tapi belum dapat email?
-                                <a href="/email/resend" className="text-blue-600 font-semibold hover:underline ml-1">Kirim ulang verifikasi</a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100 h-fit">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Buat Akun Baru</h2>
-                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                    Bergabunglah dengan FoxPath untuk memulai perjalanan karir Anda. Sistem kami menggunakan metode 
-                    <strong> Simple Additive Weighting (SAW)</strong> untuk memastikan proses seleksi yang transparan, adil, dan akurat berdasarkan kriteria akademik Anda.
-                </p>
-
-                <button 
-                    type="button"
-                    onClick={() => navigate('/register')}
-                    className="w-full h-11 border-2 border-gray-900 text-gray-900 font-semibold rounded-full hover:bg-gray-900 hover:text-white transition-all duration-300"
-                >
-                    Buat Akun Pendaftar
-                </button>
-                </div>
-            </div>
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors duration-300">
+      <div className="mb-8">
+        <div className="h-16 w-16 rounded-full bg-gray-300 dark:bg-slate-800 flex items-center justify-center shadow-inner">
+          <span className="text-gray-500 dark:text-slate-400 font-bold text-xl uppercase">
+            FP
+          </span>
         </div>
-    )
+      </div>
+
+      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {/* KARTU LOGIN UTAMA */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100 dark:border-slate-800">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 uppercase tracking-tight">
+            Masuk ke FoxPath
+          </h1>
+          <p className="text-gray-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+            Silahkan masuk untuk mengakses portal pendaftaran magang dan
+            memantau hasil seleksi metode SAW.
+          </p>
+
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-5"
+            noValidate
+          >
+            <div className="space-y-1">
+              <Label
+                htmlFor="login"
+                className="text-gray-600 dark:text-slate-300 font-normal"
+              >
+                Email atau Username
+              </Label>
+              <Input
+                id="login"
+                autoComplete="username"
+                placeholder="user / user@gmail.com"
+                {...register("login")}
+                error={errors.login?.message}
+                className="bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 h-11 rounded-lg focus:bg-white dark:focus:bg-slate-900 transition-all dark:text-white"
+              />
+            </div>
+
+            <div className="space-y-1 relative">
+              <div className="flex justify-between items-center mb-1">
+                <Label
+                  htmlFor="password"
+                  className="text-gray-600 dark:text-slate-300 font-normal"
+                >
+                  Password
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 flex items-center gap-1 font-medium transition-colors"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showPassword ? "Sembunyikan" : "Tampilkan"}
+                </button>
+              </div>
+
+              <Input
+                id="password"
+                autoComplete="current-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                {...register("password")}
+                error={errors.password?.message}
+                className="bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 h-11 rounded-lg focus:bg-white dark:focus:bg-slate-900 transition-all dark:text-white"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="remember_me"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-gray-900 dark:text-blue-600 focus:ring-gray-900 dark:focus:ring-blue-600 cursor-pointer"
+                  {...register("remember_me")}
+                />
+                <label
+                  htmlFor="remember_me"
+                  className="text-sm text-gray-600 dark:text-slate-400 cursor-pointer select-none font-medium"
+                >
+                  Ingat Saya
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2">
+              <Button
+                type="submit"
+                isLoading={isLoading}
+                className="w-full px-8 rounded-full bg-gray-400 hover:bg-gray-500 text-white font-semibold h-11 transition-all active:scale-95"
+              >
+                Sign In
+              </Button>
+
+              <a
+                href="/forgot-password"
+                className="text-sm font-semibold text-gray-800 dark:text-slate-300 hover:underline inline-block w-fit"
+              >
+                Lupa password anda?
+              </a>
+            </div>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200 dark:border-slate-800" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white dark:bg-slate-900 px-3 text-gray-500 dark:text-slate-500">
+                  Atau masuk dengan
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 h-10 border border-gray-300 dark:border-slate-700 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <FacebookIcon className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-300">
+                  Facebook
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 h-10 border border-gray-300 dark:border-slate-700 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <GoogleIcon className="w-5 h-5" />
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-300">
+                  Google
+                </span>
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-6 leading-relaxed">
+              Belum terdaftar? Dapatkan akses eksklusif ke lowongan magang dan
+              update status seleksi real-time.
+              <a
+                href="/register"
+                className="text-gray-900 dark:text-blue-500 font-bold hover:underline ml-1"
+              >
+                Daftar sekarang
+              </a>
+            </p>
+
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 text-center">
+              <div className="text-xs text-gray-400 dark:text-slate-500 font-medium">
+                Sudah daftar tapi belum dapat email?
+                <a
+                  href="/email/resend"
+                  className="text-blue-600 dark:text-blue-400 font-semibold hover:underline ml-1"
+                >
+                  Kirim ulang verifikasi
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* KARTU INFO KANAN */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100 dark:border-slate-800 h-fit">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 uppercase tracking-tight">
+            Buat Akun Baru
+          </h2>
+          <p className="text-gray-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+            Bergabunglah dengan FoxPath untuk memulai perjalanan karir Anda.
+            Sistem kami menggunakan metode
+            <strong className="text-gray-900 dark:text-slate-200">
+              {" "}
+              Simple Additive Weighting (SAW)
+            </strong>{" "}
+            untuk memastikan proses seleksi yang transparan, adil, dan akurat
+            berdasarkan kriteria akademik Anda.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            className="w-full h-11 border-2 border-gray-900 dark:border-blue-600 text-gray-900 dark:text-blue-500 font-semibold rounded-full hover:bg-gray-900 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white transition-all duration-300"
+          >
+            Buat Akun Pendaftar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
+// ICON COMPONENTS
 function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>

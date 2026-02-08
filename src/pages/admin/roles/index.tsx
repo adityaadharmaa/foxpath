@@ -15,64 +15,18 @@ import {
   Columns,
   Check,
   MoreHorizontal,
-  Trash,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import RoleModal from "./modal/RoleModal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import BreadCrumbs from "@/components/ui/breadcrumbs";
+import { cn } from "@/lib/utils";
 
-function ColumnToggle({
-  columns,
-  onChange,
-}: {
-  columns: any[];
-  onChange: (key: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node))
-        setIsOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <Button
-        variant="outline"
-        className="gap-2 border-slate-200 dark:border-slate-800"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Columns size={16} /> Columns
-      </Button>
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
-          <p className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">
-            Toggle Columns
-          </p>
-          {columns.map((col) => (
-            <button
-              key={col.key}
-              onClick={() => onChange(col.key)}
-              className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between rounded-md"
-            >
-              {col.label}
-              {col.visible && <Check size={14} className="text-blue-600" />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
+// --- ACTION MENU COMPONENT ---
 function RoleActionMenu({
   onEdit,
   onDelete,
@@ -98,35 +52,34 @@ function RoleActionMenu({
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
+        className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-all active:scale-90"
       >
         <MoreHorizontal size={18} />
       </button>
+
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-1">
+        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-1.5 space-y-0.5">
             <button
               onClick={() => {
                 onEdit();
                 setIsOpen(false);
               }}
-              className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg"
+              className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg transition-colors"
             >
-              <Edit size={14} className="text-blue-500" />
-              Edit Role
+              <Edit size={14} className="text-blue-500" /> Edit Role
             </button>
-
             {!isProtected && (
               <>
-                <div className="border border-t border-slate-100 dark:border-slate-800 my-1"></div>
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
                 <button
                   onClick={() => {
                     onDelete();
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 rounded-lg"
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 rounded-lg transition-colors"
                 >
-                  <Trash size={14} /> Hapus Role
+                  <Trash2 size={14} /> Hapus Role
                 </button>
               </>
             )}
@@ -138,11 +91,9 @@ function RoleActionMenu({
 }
 
 // --- MAIN PAGE ---
-
 export default function RoleManagementPage() {
-  // Data State
-  const [allRoles, setAllRoles] = useState<any[]>([]); // Menyimpan semua data mentah
-  const [displayedRoles, setDisplayedRoles] = useState<any[]>([]); // Data yang ditampilkan (paginated)
+  const [allRoles, setAllRoles] = useState<any[]>([]);
+  const [displayedRoles, setDisplayedRoles] = useState<any[]>([]);
   const [summary, setSummary] = useState({
     totals: { roles: 0, most_used: "-", most_used_count: 0 },
   });
@@ -152,7 +103,6 @@ export default function RoleManagementPage() {
   const [deleteName, setDeleteName] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Filter & Pagination State
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -160,14 +110,6 @@ export default function RoleManagementPage() {
     total: 0,
     last_page: 1,
   });
-
-  const [visibleColumns, setVisibleColumns] = useState([
-    { key: "name", label: "Role Name", visible: true },
-    { key: "desc", label: "Description", visible: true },
-    { key: "count", label: "Users Count", visible: true },
-    { key: "date", label: "Created At", visible: true },
-    { key: "action", label: "Actions", visible: true },
-  ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState<any>(null);
@@ -179,25 +121,21 @@ export default function RoleManagementPage() {
 
   useEffect(() => {
     let filtered = allRoles;
-
-    // 1. Filter Search
     if (search) {
       filtered = allRoles.filter(
-        (role) =>
-          role.name.toLowerCase().includes(search.toLowerCase()) ||
-          (role.description &&
-            role.description.toLowerCase().includes(search.toLowerCase())),
+        (r) =>
+          r.name.toLowerCase().includes(search.toLowerCase()) ||
+          (r.description &&
+            r.description.toLowerCase().includes(search.toLowerCase())),
       );
     }
-
     const total = filtered.length;
     const last_page = Math.ceil(total / pagination.per_page) || 1;
-
     const currentPage = Math.min(pagination.current_page, last_page);
-
-    const startIdx = (currentPage - 1) * pagination.per_page;
-    const endIdx = startIdx + pagination.per_page;
-    const paginatedData = filtered.slice(startIdx, endIdx);
+    const paginatedData = filtered.slice(
+      (currentPage - 1) * pagination.per_page,
+      currentPage * pagination.per_page,
+    );
 
     setDisplayedRoles(paginatedData);
     setPagination((prev) => ({
@@ -212,10 +150,8 @@ export default function RoleManagementPage() {
     setIsLoading(true);
     try {
       const response = await roleService.getRoles();
-      const data = response.data.data || [];
-      setAllRoles(data);
+      setAllRoles(response.data.data || []);
     } catch (error) {
-      console.error("Error fetching roles:", error);
       setAllRoles([]);
     } finally {
       setIsLoading(false);
@@ -225,42 +161,13 @@ export default function RoleManagementPage() {
   const fetchSummary = async () => {
     try {
       const res = await roleService.getSummary();
-      if (res.data && res.data.data) {
-        setSummary(res.data.data);
-      }
+      if (res.data?.data) setSummary(res.data.data);
     } catch (error) {
       console.error(error);
     }
   };
 
-  const confirmDelete = (id: number, name: string) => {
-    setDeleteId(id);
-    setDeleteName(name);
-  };
-
-  const handleDelete = async () => {
-    if (deleteName?.toLowerCase() === "admin") {
-      toast.error("Role Admin tidak boleh dihapus!");
-      setDeleteId(null);
-      return;
-    }
-
-    if (!deleteId) return;
-    setIsDeleting(true);
-    try {
-      const res = await roleService.deleteRole(deleteId);
-      toast.success(res.data.message);
-      fetchData();
-      fetchSummary();
-      setDeleteId(null);
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Gagal menghapus role.";
-      toast.error(msg);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
+  // --- KEMBALIKAN FUNGSI MODAL ---
   const openCreateModal = () => {
     setRoleToEdit(null);
     setIsModalOpen(true);
@@ -271,275 +178,285 @@ export default function RoleManagementPage() {
     setIsModalOpen(true);
   };
 
-  const toggleColumn = (key: string) => {
-    setVisibleColumns((cols) =>
-      cols.map((c) => (c.key === key ? { ...c, visible: !c.visible } : c)),
-    );
+  const handleDelete = async () => {
+    if (deleteName?.toLowerCase() === "admin") {
+      toast.error("Role Admin tidak dapat dihapus!");
+      setDeleteId(null);
+      return;
+    }
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await roleService.deleteRole(deleteId);
+      toast.success("Role berhasil dihapus");
+      fetchData();
+      fetchSummary();
+      setDeleteId(null);
+    } catch (error: any) {
+      toast.error("Gagal menghapus role.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 mt-4 px-4 md:px-0">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <BreadCrumbs items={[{ label: "Role Management" }]} />
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Role Management
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Atur hak akses dan tipe pengguna dalam sistem.
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">
+            Kelola tingkatan akses dan departemen pengguna FoxPath.
           </p>
         </div>
         <Button
+          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-600/20 rounded-2xl h-12 px-8 font-bold"
           onClick={openCreateModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-600/20"
         >
-          <Plus size={16} /> Add Role
+          <Plus size={18} /> Tambah Role
         </Button>
       </div>
 
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* STATS OVERVIEW */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Roles"
           value={summary.totals.roles}
           icon={<Shield className="text-blue-500" />}
-          border="border-blue-200 dark:border-blue-900"
         />
         <StatCard
-          title="Most Used Role"
+          title="Populer"
           value={summary.totals.most_used}
           icon={<Users className="text-purple-500" />}
-          border="border-purple-200 dark:border-purple-900"
           subtitle={`${summary.totals.most_used_count} Users`}
         />
         <StatCard
-          title="System Status"
+          title="Status"
           value="Active"
-          icon={<CheckCircle className="text-green-500" />}
-          indicator="bg-green-500"
-          border="border-green-200 dark:border-green-900"
+          icon={<CheckCircle className="text-emerald-500" />}
+          indicator="bg-emerald-500"
         />
       </div>
 
-      {/* MAIN TABLE */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-        {/* TOOLBAR */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full sm:w-80 group">
-            <Input
-              placeholder="Cari role..."
-              className="pl-10 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              startIcon={
-                <Search
-                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-                  size={14}
-                />
-              }
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* Rows Per Page Dropdown */}
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="hidden sm:inline">Rows:</span>
-              <select
-                className="h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
-                value={pagination.per_page}
-                onChange={(e) =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    per_page: Number(e.target.value),
-                    current_page: 1,
-                  }))
-                }
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-
-            {/* Column Toggle */}
-            <ColumnToggle columns={visibleColumns} onChange={toggleColumn} />
-          </div>
+      {/* TOOLBAR */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="relative w-full sm:w-80 group">
+          <Input
+            placeholder="Cari role..."
+            className="pl-11 h-12"
+            startIcon={<Search size={18} className="text-slate-400" />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-
-        {/* TABLE WRAPPER */}
-        <div className="overflow-x-auto relative">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-950/50 uppercase text-[11px] tracking-wider font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-              <tr>
-                {visibleColumns.find((c) => c.key === "name")?.visible && (
-                  <th className="px-6 py-4">Role Name</th>
-                )}
-                {visibleColumns.find((c) => c.key === "desc")?.visible && (
-                  <th className="px-6 py-4">Description</th>
-                )}
-                {visibleColumns.find((c) => c.key === "count")?.visible && (
-                  <th className="px-6 py-4">Users Count</th>
-                )}
-                {visibleColumns.find((c) => c.key === "date")?.visible && (
-                  <th className="px-6 py-4">Created At</th>
-                )}
-                {visibleColumns.find((c) => c.key === "action")?.visible && (
-                  <th className="px-6 py-4 text-right">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={visibleColumns.filter((c) => c.visible).length}
-                    className="px-6 py-20 text-center text-slate-500"
-                  >
-                    <div className="flex flex-col justify-center items-center gap-2">
-                      <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-                      <p className="text-xs">Memuat data role...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : displayedRoles.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={visibleColumns.filter((c) => c.visible).length}
-                    className="px-6 py-20 text-center text-slate-500"
-                  >
-                    <div className="flex flex-col justify-center items-center gap-2">
-                      <ListFilter className="h-8 w-8 text-slate-300" />
-                      Tidak ada data role ditemukan.
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                displayedRoles.map((role) => (
-                  <tr
-                    key={role.id}
-                    className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    {/* Name */}
-                    {visibleColumns.find((c) => c.key === "name")?.visible && (
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
-                            <Shield size={16} />
-                          </div>
-                          <span className="font-semibold text-slate-900 dark:text-white uppercase">
-                            {role.name}
-                          </span>
-                        </div>
-                      </td>
-                    )}
-
-                    {/* Desc */}
-                    {visibleColumns.find((c) => c.key === "desc")?.visible && (
-                      <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
-                        {role.description || "-"}
-                      </td>
-                    )}
-
-                    {/* Count (Fix: Pastikan backend kirim users_count) */}
-                    {visibleColumns.find((c) => c.key === "count")?.visible && (
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            (role.users_count || 0) > 0
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-                              : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
-                          }`}
-                        >
-                          {role.users_count || 0} Users
-                        </span>
-                      </td>
-                    )}
-
-                    {/* Date */}
-                    {visibleColumns.find((c) => c.key === "date")?.visible && (
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {role.created_at
-                          ? new Date(role.created_at).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )
-                          : "-"}
-                      </td>
-                    )}
-
-                    {/* Actions */}
-                    {visibleColumns.find((c) => c.key === "action")
-                      ?.visible && (
-                      <td className="px-6 py-4 text-right">
-                        <RoleActionMenu
-                          onEdit={() => openEditModal(role)}
-                          onDelete={() => confirmDelete(role.id, role.name)}
-                          isProtected={role.name.toLowerCase === "admin"}
-                        />
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION FOOTER */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50/50 dark:bg-slate-950/30">
-          <p className="text-xs text-slate-500">
-            Menampilkan{" "}
-            <span className="font-medium text-slate-900 dark:text-white">
-              {displayedRoles.length}
-            </span>{" "}
-            dari{" "}
-            <span className="font-medium text-slate-900 dark:text-white">
-              {pagination.total}
-            </span>{" "}
-            data
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-8 text-xs"
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  current_page: prev.current_page - 1,
-                }))
-              }
-              disabled={pagination.current_page === 1 || isLoading}
-            >
-              <ChevronLeft size={12} className="mr-1" /> Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-8 text-xs"
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  current_page: prev.current_page + 1,
-                }))
-              }
-              disabled={
-                pagination.current_page === pagination.last_page || isLoading
-              }
-            >
-              Next <ChevronRight size={12} className="ml-1" />
-            </Button>
-          </div>
+        <div className="flex items-center gap-3 self-end px-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Rows:
+          </span>
+          <select
+            className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-3 outline-none font-bold"
+            value={pagination.per_page}
+            onChange={(e) =>
+              setPagination({
+                ...pagination,
+                per_page: Number(e.target.value),
+                current_page: 1,
+              })
+            }
+          >
+            {[10, 20, 50].map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* DATA CONTENT */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
+          <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+            Menyinkronkan Peran...
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* MOBILE VIEW (Card List) */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {displayedRoles.map((role) => (
+              <div
+                key={role.id}
+                className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative"
+              >
+                <div className="flex justify-between items-start mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center shadow-inner">
+                      <Shield size={24} />
+                    </div>
+                    <div>
+                      <p className="font-black text-slate-900 dark:text-white text-base leading-tight uppercase tracking-tight">
+                        {role.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                        ID: #{role.id}
+                      </p>
+                    </div>
+                  </div>
+                  <RoleActionMenu
+                    onEdit={() => openEditModal(role)}
+                    onDelete={() => {
+                      setDeleteId(role.id);
+                      setDeleteName(role.name);
+                    }}
+                    isProtected={role.name.toLowerCase() === "admin"}
+                  />
+                </div>
+                <div className="space-y-4 border-t border-slate-50 dark:border-slate-800/50 pt-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Description
+                    </span>
+                    <p className="text-xs font-bold dark:text-slate-200 leading-relaxed line-clamp-2">
+                      {role.description || "Tidak ada deskripsi."}
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <Users size={14} className="text-blue-500" />
+                      <span className="text-xs font-black dark:text-slate-100">
+                        {role.users_count || 0} Pengguna
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <Calendar size={12} />
+                      <span className="text-[10px] font-bold">
+                        {new Date(role.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP VIEW (Table) */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-950/50 uppercase text-[10px] tracking-widest font-black text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-5">Role Identity</th>
+                  <th className="px-6 py-5">Role Description</th>
+                  <th className="px-6 py-5">Usage</th>
+                  <th className="px-6 py-5">Created Date</th>
+                  <th className="px-6 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                {displayedRoles.map((role) => (
+                  <tr
+                    key={role.id}
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group font-medium"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center border dark:border-blue-900/30">
+                          <Shield size={16} />
+                        </div>
+                        <span className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                          {role.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                      {role.description || "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge
+                        variant="outline"
+                        className="rounded-lg font-black text-[10px] bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                      >
+                        {role.users_count || 0} USERS
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-400">
+                      {new Date(role.created_at).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <RoleActionMenu
+                        onEdit={() => openEditModal(role)}
+                        onDelete={() => {
+                          setDeleteId(role.id);
+                          setDeleteName(role.name);
+                        }}
+                        isProtected={role.name.toLowerCase() === "admin"}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* PAGINATION SECTION */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-4">
+        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          Page {pagination.current_page} of {pagination.last_page}
+          <span className="h-1 w-1 rounded-full bg-slate-200 dark:bg-slate-800" />
+          {pagination.total} Roles Configured
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none h-12 rounded-2xl font-bold dark:bg-slate-900 dark:border-slate-800"
+            disabled={pagination.current_page === 1}
+            onClick={() =>
+              setPagination({
+                ...pagination,
+                current_page: pagination.current_page - 1,
+              })
+            }
+          >
+            <ChevronLeft size={18} className="mr-1" /> Prev
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none h-12 rounded-2xl font-bold dark:bg-slate-900 dark:border-slate-800"
+            disabled={pagination.current_page === pagination.last_page}
+            onClick={() =>
+              setPagination({
+                ...pagination,
+                current_page: pagination.current_page + 1,
+              })
+            }
+          >
+            Next <ChevronRight size={18} className="ml-1" />
+          </Button>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Hapus Role?"
+        description={`Tindakan ini permanen. Seluruh data terkait role "${deleteName}" akan dihapus.`}
+        confirmText="Ya, Hapus Permanen"
+        variant="danger"
+        isLoading={isDeleting}
+      />
       <RoleModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -549,46 +466,37 @@ export default function RoleManagementPage() {
         }}
         roleToEdit={roleToEdit}
       />
-
-      <ConfirmDialog
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Hapus, Role?"
-        description="Tindakan ini tidak dapat dibatalkan. Role yang dihapus akan dihapus permanen."
-        confirmText="Ya, Hapus"
-        variant="danger"
-        isLoading={isDeleting}
-      />
     </div>
   );
 }
 
-// Sub Component Stat Card (Sama)
-function StatCard({ title, value, icon, border, indicator, subtitle }: any) {
+function StatCard({ title, value, icon, indicator, subtitle }: any) {
   return (
-    <div
-      className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border shadow-sm ${border || "border-slate-200"} relative overflow-hidden`}
-    >
+    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-all duration-300 hover:border-blue-500/50">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">
+          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">
             {title}
           </p>
-          <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase tabular-nums">
             {value}
           </h3>
           {subtitle && (
-            <p className="text-xs text-slate-400 mt-1">{subtitle}</p>
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 mt-1 italic">
+              {subtitle}
+            </p>
           )}
         </div>
-        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-inner">
           {icon}
         </div>
       </div>
       {indicator && (
         <div
-          className={`absolute top-6 right-16 w-2 h-2 rounded-full ${indicator} animate-pulse`}
+          className={cn(
+            "absolute top-6 right-16 w-2 h-2 rounded-full animate-pulse",
+            indicator,
+          )}
         ></div>
       )}
     </div>

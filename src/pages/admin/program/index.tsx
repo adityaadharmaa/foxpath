@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useRef, useState } from "react";
 import { programService } from "@/services/programService";
 import {
   Archive,
@@ -24,64 +23,18 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ProgramModal from "./modal/ProgramModal";
 import ProgramDetailModal from "./modal/ProgramDetailModal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import BreadCrumbs from "@/components/ui/breadcrumbs";
 import SAWResultModal from "./modal/SAWResultModal";
+import { cn } from "@/lib/utils";
 
-function ColumnToggle({
-  columns,
-  onChange,
-}: {
-  columns: any[];
-  onChange: (key: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node))
-        setIsOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <Button
-        variant="outline"
-        className="gap-2 border-slate-200 dark:border-slate-800"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Layers size={16} /> Columns
-      </Button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-1">
-          <p className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">
-            Toggle Columns
-          </p>
-          {columns.map((col) => (
-            <button
-              key={col.key}
-              onClick={() => onChange(col.key)}
-              className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between rounded-md"
-            >
-              {col.label}
-              {col.visible && <Check size={14} className="text-blue-600" />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
+// --- ACTION MENU COMPONENT ---
 function ProgramActionMenu({
   program,
   onEdit,
@@ -105,69 +58,63 @@ function ProgramActionMenu({
   }, []);
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative inline-block text-left" ref={menuRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
+        className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-all active:scale-90"
       >
         <MoreHorizontal size={18} />
       </button>
+
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-1">
-            {!program.is_deleted && (
-              <button
-                onClick={() => {
-                  onViewDetail();
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 rounded-lg"
-              >
-                <Eye size={14} className="text-purple-500" /> Lihat Detail &
-                Pelamar
-              </button>
-            )}
-            {!program.is_deleted && program.is_active && (
-              <button
-                onClick={() => {
-                  onCalculateSaw();
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 rounded-lg"
-              >
-                <Calculator size={14} className="text-orange-500" /> Hitung
-                Ranking (SAW)
-              </button>
-            )}
-            {!program.is_deleted && (
-              <button
-                onClick={() => {
-                  onViewSAWResult();
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 rounded-lg"
-              >
-                <Trophy size={14} className="text-blue-500" /> Lihat Hasil SAW
-              </button>
-            )}
-            {program.is_deleted ? (
-              <button
-                onClick={() => {
-                  onRestore();
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-xs font-medium text-green-600 hover:bg-green-50 flex items-center gap-2 rounded-lg"
-              >
-                <RefreshCcw size={14} /> Restore Program
-              </button>
-            ) : (
+        <div
+          className={cn(
+            "absolute right-0 mt-2 w-52 origin-top-right bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 focus:outline-none animate-in fade-in zoom-in-95 duration-200",
+            // FIX: Menggunakan z-index sangat tinggi agar tidak tertutup baris tabel lain
+            "z-[100]",
+          )}
+        >
+          <div className="p-1.5 space-y-0.5">
+            {!program.is_deleted ? (
               <>
+                <button
+                  onClick={() => {
+                    onViewDetail();
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg"
+                >
+                  <Eye size={14} className="text-purple-500" /> Detail & Pelamar
+                </button>
+                {program.is_active && (
+                  <button
+                    onClick={() => {
+                      onCalculateSaw();
+                      setIsOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg"
+                  >
+                    <Calculator size={14} className="text-orange-500" /> Hitung
+                    Ranking
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    onViewSAWResult();
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg"
+                >
+                  <Trophy size={14} className="text-blue-500" /> Hasil SAW
+                </button>
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
                 <button
                   onClick={() => {
                     onEdit();
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 rounded-lg"
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg"
                 >
                   <Edit size={14} className="text-blue-500" /> Edit Program
                 </button>
@@ -176,26 +123,36 @@ function ProgramActionMenu({
                     onToggle();
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 rounded-lg"
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg"
                 >
                   {program.is_active ? (
-                    <ToggleRight size={14} className="text-green-500" />
+                    <ToggleRight size={14} className="text-emerald-500" />
                   ) : (
                     <ToggleLeft size={14} className="text-slate-400" />
                   )}
-                  {program.is_active ? "Nonaktif" : "Aktifkan"}
+                  {program.is_active ? "Nonaktifkan" : "Aktifkan"}
                 </button>
-                <div className="border-t border-slate-100 my-1"></div>
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1"></div>
                 <button
                   onClick={() => {
                     onDelete();
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-lg"
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 rounded-lg"
                 >
                   <Trash2 size={14} /> Hapus Program
                 </button>
               </>
+            ) : (
+              <button
+                onClick={() => {
+                  onRestore();
+                  setIsOpen(false);
+                }}
+                className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 rounded-lg"
+              >
+                <RefreshCcw size={14} /> Restore Program
+              </button>
             )}
           </div>
         </div>
@@ -204,23 +161,21 @@ function ProgramActionMenu({
   );
 }
 
+// --- MAIN PAGE ---
 export default function ProgramManagementPage() {
   const [programs, setPrograms] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({
     total_programs: 0,
     active_programs: 0,
-    deleted_programs: 0,
+    total_applications: 0,
   });
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedProgramId, setSelectedProgramId] = useState<number | null>(
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
-
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Params
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -229,27 +184,10 @@ export default function ProgramManagementPage() {
     last_page: 1,
   });
   const [includeDeleted, setIncludeDeleted] = useState(false);
-
-  const [visibleColumns, setVisibleColumns] = useState([
-    { key: "name", label: "Program Info", visible: true },
-    { key: "dates", label: "Registration Date", visible: true },
-    { key: "capacity", label: "Capacity", visible: true },
-    { key: "cohort", label: "Cohort & Duration", visible: true },
-    { key: "status", label: "Status", visible: true },
-    { key: "applicants", label: "Applicants", visible: true },
-    { key: "action", label: "Actions", visible: true },
-  ]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [programToEdit, setProgramToEdit] = useState<any>(null);
-
   const [isSAWModalOpen, setIsSAWModalOpen] = useState(false);
   const [programForSAW, setProgramForSAW] = useState<any>(null);
-
-  const handleViewSAWResult = (program: any) => {
-    setProgramForSAW(program);
-    setIsSAWModalOpen(true);
-  };
 
   useEffect(() => {
     fetchData();
@@ -265,21 +203,11 @@ export default function ProgramManagementPage() {
         q: search,
         include_deleted: includeDeleted ? 1 : 0,
       };
-
       const response = await programService.getPrograms(params);
-
       setPrograms(response.data.data || []);
-
-      if (response.data.meta && response.data.meta.pagination) {
-        setPagination({
-          current_page: response.data.meta.pagination.current_page,
-          per_page: response.data.meta.pagination.per_page,
-          total: response.data.meta.pagination.total,
-          last_page: response.data.meta.pagination.last_page,
-        });
-      }
+      if (response.data.meta?.pagination)
+        setPagination(response.data.meta.pagination);
     } catch (error) {
-      console.error("Error fetching programs", error);
       setPrograms([]);
     } finally {
       setIsLoading(false);
@@ -289,428 +217,413 @@ export default function ProgramManagementPage() {
   const fetchSummary = async () => {
     try {
       const res = await programService.getSummary();
-      if (res.data && res.data.data) {
-        setSummary(res.data.data);
-      }
+      if (res.data?.data) setSummary(res.data.data);
     } catch (error) {
       console.error(error);
     }
   };
 
-  const confirmDelete = (id: number) => {
-    setDeleteId(id);
-  };
+  const confirmDelete = (id: number) => setDeleteId(id);
 
   const handleDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
     try {
-      const res = await programService.deleteProgram(deleteId);
-      toast.success(res.data.message);
+      await programService.deleteProgram(deleteId);
+      toast.success("Program berhasil diarsipkan");
       fetchData();
       fetchSummary();
       setDeleteId(null);
     } catch (error: any) {
-      const msg = error.response?.data?.message || "Gagal menghapus.";
-      toast.error(msg);
+      toast.error("Gagal menghapus.");
     } finally {
       setIsDeleting(false);
     }
   };
 
   const handleCalculateSAW = async (programId: number) => {
-    const toastId = toast.loading("Sedang melakukan perhitungan SAW...");
+    const toastId = toast.loading("Sedang menghitung SAW...");
     try {
-      await programService.calculateSAW(programId);
-      toast.success("Perhitungan selesai! Silakan lihat hasil.", {
-        id: toastId,
-      });
-    } catch (error: any) {
-      // Cek jika errornya 404 (artinya tidak ada data scored)
-      if (error.response && error.response.status === 404) {
-        toast.warning("Belum ada pelamar yang dinilai (Status: Scored).", {
-          id: toastId,
-          description:
-            "Silakan input nilai wawancara/CV pelamar terlebih dahulu.",
-        });
-      } else {
-        toast.error(error.response?.data?.message || "Gagal menghitung.", {
-          id: toastId,
-        });
-      }
-    }
-  };
-
-  const handleRestore = async (id: number) => {
-    const toastId = toast.loading("Mengembalikan...");
-    try {
-      const res = await programService.restoreProgram(id);
+      const res = await programService.calculateSAW(programId);
       toast.success(res.data.message, { id: toastId });
-      fetchData();
-      fetchSummary();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal Restore", {
-        id: toastId,
-      });
+      toast.error("Gagal menghitung.", { id: toastId });
     }
-  };
-
-  const handleToggle = async (id: number) => {
-    const toastId = toast.loading("Mengupdate status...");
-    try {
-      const res = await programService.toggleStatus(id);
-      toast.success(res.data.message, { id: toastId });
-      fetchData();
-      fetchSummary();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gagal update status.", {
-        id: toastId,
-      });
-    }
-  };
-
-  const toggleColumn = (key: string) => {
-    setVisibleColumns((cols) =>
-      cols.map((c) => (c.key === key ? { ...c, visible: !c.visible } : c)),
-    );
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20 mt-4 px-4 md:px-0">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <BreadCrumbs items={[{ label: "Program Management" }]} />
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Program Management
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Kelola program magang, periode pendaftaran, dan status.
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">
+            Manajemen pendaftaran dan seleksi magang.
           </p>
         </div>
-        <div className="flex gap-2">
+        <Button
+          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg rounded-2xl h-12 px-8 font-bold"
+          onClick={() => {
+            setProgramToEdit(null);
+            setIsModalOpen(true);
+          }}
+        >
+          <Plus size={18} /> Tambah Program
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard
+          title="Total Program"
+          value={summary.total_programs}
+          icon={<Layers className="text-blue-500" />}
+        />
+        <StatCard
+          title="Aktif"
+          value={summary.active_programs}
+          icon={<CheckCircle className="text-emerald-500" />}
+          indicator="bg-emerald-500"
+        />
+        <StatCard
+          title="Total Pelamar"
+          value={summary.total_applications}
+          icon={<Users className="text-purple-500" />}
+        />
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="relative w-full sm:w-80 group">
+          <Input
+            placeholder="Cari nama program..."
+            className="pl-11 h-12"
+            startIcon={<Search size={18} className="text-slate-400" />}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPagination({ ...pagination, current_page: 1 });
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end px-2">
           <Button
             variant={includeDeleted ? "destructive" : "outline"}
             onClick={() => setIncludeDeleted(!includeDeleted)}
-            className="gap-2"
+            className="h-10 rounded-xl gap-2 font-bold text-xs"
           >
-            <Archive size={16} />{" "}
-            {includeDeleted ? "Hide Deleted" : "Show Deleted"}
+            <Archive size={14} />{" "}
+            {includeDeleted ? "Sembunyikan Arsip" : "Lihat Arsip"}
+          </Button>
+          <select
+            className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-3 outline-none font-bold"
+            value={pagination.per_page}
+            onChange={(e) =>
+              setPagination({
+                ...pagination,
+                per_page: Number(e.target.value),
+                current_page: 1,
+              })
+            }
+          >
+            {[10, 20, 50].map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
+          <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+            Sinkronisasi Data...
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* MOBILE VIEW */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {programs.map((p) => (
+              <div
+                key={p.id}
+                className={cn(
+                  "bg-white dark:bg-slate-900 p-5 rounded-3xl border shadow-sm relative",
+                  p.is_deleted
+                    ? "border-red-200 opacity-80"
+                    : "border-slate-200 dark:border-slate-800",
+                )}
+              >
+                <div className="flex justify-between items-start mb-5">
+                  <div className="space-y-1">
+                    <p
+                      className={cn(
+                        "font-black text-slate-900 dark:text-white text-base leading-tight",
+                        p.is_deleted && "line-through text-slate-400",
+                      )}
+                    >
+                      {p.name}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={cn(
+                          "text-[9px] font-black uppercase rounded-lg border-none px-2 h-5",
+                          p.is_active ? "bg-emerald-500" : "bg-slate-500",
+                        )}
+                      >
+                        {p.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                      {p.is_deleted && (
+                        <Badge className="text-[9px] font-black uppercase bg-red-500 border-none h-5 px-2">
+                          Archived
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {/* Action Menu diperbaiki posisinya */}
+                  <div className="z-20">
+                    <ProgramActionMenu
+                      program={p}
+                      onDelete={() => confirmDelete(p.id)}
+                      onViewDetail={() => {
+                        setSelectedProgramId(p.id);
+                        setIsDetailOpen(true);
+                      }}
+                      onCalculateSaw={() => handleCalculateSAW(p.id)}
+                      onViewSAWResult={() => {
+                        setProgramForSAW(p);
+                        setIsSAWModalOpen(true);
+                      }}
+                      onRestore={() =>
+                        programService
+                          .restoreProgram(p.id)
+                          .then(() => fetchData())
+                      }
+                      onToggle={() =>
+                        programService
+                          .toggleStatus(p.id)
+                          .then(() => fetchData())
+                      }
+                      onEdit={() => {
+                        setProgramToEdit(p);
+                        setIsModalOpen(true);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 border-t border-slate-50 dark:border-slate-800/50 pt-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase">
+                      Kapasitas
+                    </p>
+                    <p className="text-xs font-black dark:text-slate-200 flex items-center gap-1">
+                      <Users size={12} className="text-blue-500" /> {p.capacity}{" "}
+                      Slots
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase">
+                      Pelamar
+                    </p>
+                    <p className="text-xs font-black dark:text-slate-200 flex items-center gap-1">
+                      <Layers size={12} className="text-purple-500" />{" "}
+                      {p.applications_count} Orang
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP VIEW */}
+          {/* FIX: Menghapus overflow-hidden dari container table agar dropdown tidak terpotong */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+            <table className="w-full text-left text-sm table-auto">
+              <thead className="bg-slate-50 dark:bg-slate-950/50 uppercase text-[10px] tracking-widest font-black text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-5">Program Identity</th>
+                  <th className="px-6 py-5">Registration Date</th>
+                  <th className="px-6 py-5 text-center">Usage</th>
+                  <th className="px-6 py-5">Cohort</th>
+                  <th className="px-6 py-5 text-center">Status</th>
+                  <th className="px-6 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                {programs.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group relative"
+                  >
+                    <td className="px-6 py-4 max-w-xs">
+                      <p
+                        className={cn(
+                          "font-bold text-slate-900 dark:text-white truncate",
+                          p.is_deleted && "line-through text-slate-400",
+                        )}
+                      >
+                        {p.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase truncate">
+                        {p.description || "N/A"}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="space-y-1 text-[11px] font-bold">
+                        <p className="flex items-center gap-2">
+                          <span className="text-slate-400 w-8">IN:</span>{" "}
+                          <span className="text-slate-700 dark:text-slate-300">
+                            {new Date(
+                              p.registration_starts_at,
+                            ).toLocaleDateString()}
+                          </span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <span className="text-slate-400 w-8">OUT:</span>{" "}
+                          <span className="text-red-500">
+                            {new Date(
+                              p.registration_ends_at,
+                            ).toLocaleDateString()}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge
+                          variant="outline"
+                          className="px-2 py-0.5 font-black text-[10px] dark:text-slate-300"
+                        >
+                          {p.capacity} Slots
+                        </Badge>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                          {p.applications_count} Applied
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 text-xs font-bold dark:text-slate-100">
+                        <PlayCircle size={14} className="text-indigo-500" />
+                        {p.cohort_starts_at
+                          ? new Date(p.cohort_starts_at).toLocaleDateString(
+                              "id-ID",
+                              { month: "short", year: "numeric" },
+                            )
+                          : "-"}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-bold mt-1 ml-5 uppercase tracking-tighter">
+                        {p.placement_duration_months} Bulan
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <Badge
+                        className={cn(
+                          "uppercase text-[9px] font-black rounded-lg border-none px-3",
+                          p.is_deleted
+                            ? "bg-red-500"
+                            : p.is_active
+                              ? "bg-emerald-500"
+                              : "bg-slate-400",
+                        )}
+                      >
+                        {p.is_deleted
+                          ? "Archived"
+                          : p.is_active
+                            ? "Active"
+                            : "Inactive"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ProgramActionMenu
+                        program={p}
+                        onDelete={() => confirmDelete(p.id)}
+                        onViewDetail={() => {
+                          setSelectedProgramId(p.id);
+                          setIsDetailOpen(true);
+                        }}
+                        onCalculateSaw={() => handleCalculateSAW(p.id)}
+                        onViewSAWResult={() => {
+                          setProgramForSAW(p);
+                          setIsSAWModalOpen(true);
+                        }}
+                        onRestore={() =>
+                          programService
+                            .restoreProgram(p.id)
+                            .then(() => fetchData())
+                        }
+                        onToggle={() =>
+                          programService
+                            .toggleStatus(p.id)
+                            .then(() => fetchData())
+                        }
+                        onEdit={() => {
+                          setProgramToEdit(p);
+                          setIsModalOpen(true);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* Pagination */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-4">
+        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          Page {pagination.current_page} of {pagination.last_page}{" "}
+          <span className="h-1 w-1 rounded-full bg-slate-200" />{" "}
+          {pagination.total} Programs Total
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none h-11 rounded-xl"
+            disabled={pagination.current_page === 1}
+            onClick={() =>
+              setPagination({
+                ...pagination,
+                current_page: pagination.current_page - 1,
+              })
+            }
+          >
+            <ChevronLeft size={18} className="mr-1" /> Prev
           </Button>
           <Button
-            onClick={() => {
-              setProgramToEdit(null);
-              setIsModalOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-600/20"
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-none h-11 rounded-xl"
+            disabled={pagination.current_page === pagination.last_page}
+            onClick={() =>
+              setPagination({
+                ...pagination,
+                current_page: pagination.current_page + 1,
+              })
+            }
           >
-            <Plus size={16} /> Add Program
+            Next <ChevronRight size={18} className="ml-1" />
           </Button>
         </div>
       </div>
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Programs"
-          value={summary.total_programs}
-          icon={<Layers className="text-blue-500" />}
-          border="border-blue-200"
-        />
-        <StatCard
-          title="Active Programs"
-          value={summary.active_programs}
-          icon={<CheckCircle className="text-green-500" />}
-          border="border-green-200"
-          indicator="bg-green-500"
-        />
-        <StatCard
-          title="Total Applicants"
-          value={summary.total_applications}
-          icon={<Users className="text-purple-500" />}
-          border="border-purple-200"
-          subtitle="Across all programs"
-        />
-      </div>
 
-      {/* MAIN TABLE */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-        {/* TOOLBAR */}
-        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50">
-          <div className="relative w-full sm:w-80 group">
-            <Input
-              placeholder="Cari nama program..."
-              className="pl-10 bg-white border-slate-200"
-              value={search}
-              startIcon={
-                <Search
-                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-                  size={18}
-                />
-              }
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPagination({ ...pagination, current_page: 1 });
-              }}
-            />
-          </div>
-          {/* Rows Per Page & Columns (Simple Version) */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">Rows:</span>
-            <select
-              className="h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
-              value={pagination.per_page}
-              onChange={(e) =>
-                setPagination((prev) => ({
-                  ...prev,
-                  per_page: Number(e.target.value),
-                  current_page: 1,
-                }))
-              }
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
-            <ColumnToggle columns={visibleColumns} onChange={toggleColumn} />
-          </div>
-        </div>
-
-        {/* TABLE */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 uppercase text-[11px] tracking-wider font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                {visibleColumns.find((c) => c.key === "name")?.visible && (
-                  <th className="px-6 py-4">Program Name</th>
-                )}
-                {visibleColumns.find((c) => c.key === "dates")?.visible && (
-                  <th className="px-6 py-4">Registration</th>
-                )}
-                {visibleColumns.find((c) => c.key === "capacity")?.visible && (
-                  <th className="px-6 py-4">Kapasitas</th>
-                )}
-                {visibleColumns.find((c) => c.key === "cohort")?.visible && (
-                  <th className="px-6 py-4">Cohort & Duration</th>
-                )}
-                {visibleColumns.find((c) => c.key === "status")?.visible && (
-                  <th className="px-6 py-4">Status</th>
-                )}
-                {visibleColumns.find((c) => c.key === "applicants")
-                  ?.visible && <th className="px-6 py-4">Applicants</th>}
-                {visibleColumns.find((c) => c.key === "action")?.visible && (
-                  <th className="px-6 py-4 text-right">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-20 text-center text-slate-500"
-                  >
-                    <Loader2 className="animate-spin h-6 w-6 mx-auto mb-2" />
-                    Loading...
-                  </td>
-                </tr>
-              ) : programs.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-20 text-center text-slate-500"
-                  >
-                    Data tidak ditemukan.
-                  </td>
-                </tr>
-              ) : (
-                programs.map((program) => (
-                  <tr
-                    key={program.id}
-                    className={`group transition-colors ${program.is_deleted ? "bg-red-50/50" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"}`}
-                  >
-                    {/* 1. Name & Desc: Hapus flex-col berlebihan, buat compact */}
-                    {visibleColumns.find((c) => c.key === "name")?.visible && (
-                      <td className="px-6 py-4 align-top">
-                        <div>
-                          <span
-                            className={`block font-semibold text-slate-900 dark:text-white ${program.is_deleted ? "text-red-600 line-through" : ""}`}
-                          >
-                            {program.name}
-                          </span>
-                          <span
-                            className="block text-xs text-slate-500 mt-0.5 truncate max-w-50"
-                            title={program.description}
-                          >
-                            {program.description || "-"}
-                          </span>
-                        </div>
-                      </td>
-                    )}
-
-                    {/* 2. Registration: Format tanggal yang lebih rapi */}
-                    {visibleColumns.find((c) => c.key === "dates")?.visible && (
-                      <td className="px-6 py-4 align-top">
-                        <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-400 w-10">Start:</span>
-                            <span className="font-medium text-slate-700 dark:text-slate-300">
-                              {program.registration_starts_at
-                                ? new Date(
-                                    program.registration_starts_at,
-                                  ).toLocaleDateString()
-                                : "-"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-400 w-10">End:</span>
-                            <span className="font-medium text-slate-700 dark:text-slate-300">
-                              {program.registration_ends_at
-                                ? new Date(
-                                    program.registration_ends_at,
-                                  ).toLocaleDateString()
-                                : "-"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                    )}
-
-                    {/* 3. Capacity: Simple Badge */}
-                    {visibleColumns.find((c) => c.key === "capacity")
-                      ?.visible && (
-                      <td className="px-6 py-4 align-top">
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                          {program.capacity || "∞"}
-                        </span>
-                      </td>
-                    )}
-
-                    {/* 4. Cohort: Gabung icon dan teks sebaris */}
-                    {visibleColumns.find((c) => c.key === "cohort")
-                      ?.visible && (
-                      <td className="px-6 py-4 align-top">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
-                            <PlayCircle size={14} className="text-indigo-500" />
-                            {program.cohort_starts_at
-                              ? new Date(
-                                  program.cohort_starts_at,
-                                ).toLocaleDateString("id-ID", {
-                                  month: "short",
-                                  year: "numeric",
-                                })
-                              : "-"}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Clock size={14} className="text-slate-400" />
-                            {program.placement_duration_months
-                              ? `${program.placement_duration_months} Bulan`
-                              : "-"}
-                          </div>
-                        </div>
-                      </td>
-                    )}
-
-                    {/* 5. Status: Badge Kecil */}
-                    {visibleColumns.find((c) => c.key === "status")
-                      ?.visible && (
-                      <td className="px-6 py-4 align-top">
-                        {program.is_deleted ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-red-100 text-red-700">
-                            Deleted
-                          </span>
-                        ) : program.is_active ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-green-50 text-green-700 border border-green-200">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200">
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                    )}
-
-                    {/* 6. Applicants */}
-                    {visibleColumns.find((c) => c.key === "applicants")
-                      ?.visible && (
-                      <td className="px-6 py-4 align-top">
-                        <div className="flex items-center gap-2">
-                          <Users size={14} className="text-slate-400" />
-                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            {program.applications_count || 0}
-                          </span>
-                        </div>
-                      </td>
-                    )}
-
-                    {/* 7. Action */}
-                    {visibleColumns.find((c) => c.key === "action")
-                      ?.visible && (
-                      <td className="px-6 py-4 text-right align-top">
-                        <ProgramActionMenu
-                          program={program}
-                          onEdit={() => {
-                            setProgramToEdit(program);
-                            setIsModalOpen(true);
-                          }}
-                          onCalculateSaw={() => handleCalculateSAW(program.id)}
-                          onViewSAWResult={() => handleViewSAWResult(program)}
-                          onDelete={() => confirmDelete(program.id)}
-                          onRestore={() => handleRestore(program.id)}
-                          onToggle={() => handleToggle(program.id)}
-                          onViewDetail={() => {
-                            setSelectedProgramId(program.id);
-                            setIsDetailOpen(true);
-                          }}
-                        />
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION */}
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center bg-slate-50/50">
-          <p className="text-xs text-slate-500">
-            Showing {programs.length} of {pagination.total} data
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs bg-white"
-              disabled={pagination.current_page === 1}
-              onClick={() =>
-                setPagination((p) => ({
-                  ...p,
-                  current_page: p.current_page - 1,
-                }))
-              }
-            >
-              <ChevronLeft size={12} className="mr-1" /> Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs bg-white"
-              disabled={pagination.current_page === pagination.last_page}
-              onClick={() =>
-                setPagination((p) => ({
-                  ...p,
-                  current_page: p.current_page + 1,
-                }))
-              }
-            >
-              Next <ChevronRight size={12} className="ml-1" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Arsipkan Program?"
+        description="Program yang diarsipkan tidak akan muncul di sisi pelamar."
+        confirmText="Ya, Arsipkan"
+        variant="danger"
+        isLoading={isDeleting}
+      />
       <ProgramModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -720,24 +633,11 @@ export default function ProgramManagementPage() {
         }}
         programToEdit={programToEdit}
       />
-
       <ProgramDetailModal
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         programId={selectedProgramId}
       />
-
-      <ConfirmDialog
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Hapus, Program?"
-        description="Tindakan ini tidak dapat dibatalkan. Program yang dihapus akan masuk ke arsip (soft delete)."
-        confirmText="Ya, Hapus"
-        variant="danger"
-        isLoading={isDeleting}
-      />
-
       <SAWResultModal
         isOpen={isSAWModalOpen}
         onClose={() => setIsSAWModalOpen(false)}
@@ -747,29 +647,28 @@ export default function ProgramManagementPage() {
   );
 }
 
-// Simple Stat Card
-function StatCard({ title, value, icon, border, indicator, subtitle }: any) {
+function StatCard({ title, value, icon, indicator }: any) {
   return (
-    <div
-      className={`p-6 rounded-2xl bg-white border shadow-sm ${border || "border-slate-200"} relative overflow-hidden`}
-    >
+    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-all duration-300 hover:border-blue-500/50">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">
+          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">
             {title}
           </p>
-          <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
             {value}
           </h3>
-          {subtitle && (
-            <p className="text-xs text-slate-400 mt-1">{subtitle}</p>
-          )}
         </div>
-        <div className="p-3 bg-slate-50 rounded-xl">{icon}</div>
+        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-inner">
+          {icon}
+        </div>
       </div>
       {indicator && (
         <div
-          className={`absolute top-6 right-16 w-2 h-2 rounded-full ${indicator} animate-pulse`}
+          className={cn(
+            "absolute top-6 right-16 w-2 h-2 rounded-full animate-pulse",
+            indicator,
+          )}
         ></div>
       )}
     </div>
