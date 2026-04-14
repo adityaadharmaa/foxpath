@@ -318,6 +318,9 @@ export default function ProgramManagementPage() {
             <Archive size={14} />{" "}
             {includeDeleted ? "Sembunyikan Arsip" : "Lihat Arsip"}
           </Button>
+          <span className="text-[10px] font-black text-slate-400 uppercase">
+            Rows:
+          </span>
           <select
             className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs px-3 outline-none font-bold"
             value={pagination.per_page}
@@ -329,7 +332,7 @@ export default function ProgramManagementPage() {
               })
             }
           >
-            {[10, 20, 50].map((v) => (
+            {[5, 10, 20, 50].map((v) => (
               <option key={v} value={v}>
                 {v}
               </option>

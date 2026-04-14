@@ -23,14 +23,21 @@ export default function UserDropdown() {
 
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
+
     if (path.startsWith("http")) return path;
 
-    const cleanPath = path.startsWith("/") ? path.substring(1) : path;
-
     const storageBase =
-      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
+      import.meta.env.VITE_STORAGE_URL || "http://192.168.110.250:8000";
+    const baseUrl = storageBase.endsWith("/")
+      ? storageBase.slice(0, -1)
+      : storageBase;
 
-    return `${storageBase}/${cleanPath}`;
+    let cleanPath = path.startsWith("/") ? path : `/${path}`;
+    if (!cleanPath.startsWith("/storage/")) {
+      cleanPath = `/storage${cleanPath}`;
+    }
+
+    return `${baseUrl}${cleanPath}`;
   };
 
   useEffect(() => {
@@ -74,6 +81,8 @@ export default function UserDropdown() {
         {profilePicPath && !imgError ? (
           <img
             src={getAvatarUrl(profilePicPath)}
+            loading="lazy"
+            decoding="async"
             alt={user.username}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}

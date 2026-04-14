@@ -258,9 +258,23 @@ export default function ApplicantManagementPage() {
 
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
+
+    // Jika path dari API sudah URL lengkap (http://...), langsung gunakan
+    if (path.startsWith("http")) return path;
+
     const storageBase =
-      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
-    return `${storageBase}/${path.startsWith("/") ? path.substring(1) : path}`;
+      import.meta.env.VITE_STORAGE_URL || "http://192.168.110.250:8000";
+    const baseUrl = storageBase.endsWith("/")
+      ? storageBase.slice(0, -1)
+      : storageBase;
+
+    // Pastikan path memiliki prefix /storage/ jika hanya berupa 'profiles/abc.jpg'
+    let cleanPath = path.startsWith("/") ? path : `/${path}`;
+    if (!cleanPath.startsWith("/storage/")) {
+      cleanPath = `/storage${cleanPath}`;
+    }
+
+    return `${baseUrl}${cleanPath}`;
   };
 
   return (
@@ -349,9 +363,13 @@ export default function ApplicantManagementPage() {
                 <div className="flex justify-between items-start mb-5 gap-2">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border dark:border-slate-700 shrink-0">
-                      {app.user?.profile?.profile_picture ? (
+                      {app.user?.profile?.profile_picture_url ? (
                         <img
-                          src={getAvatarUrl(app.user.profile.profile_picture)}
+                          src={getAvatarUrl(
+                            app.user.profile.profile_picture_url,
+                          )}
+                          loading="lazy"
+                          decoding="async"
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -417,7 +435,6 @@ export default function ApplicantManagementPage() {
           </div>
 
           {/* DESKTOP VIEW */}
-          {/* FIX: Menghapus overflow-hidden dari container table agar dropdown tidak terpotong */}
           <div className="hidden md:block bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 dark:bg-slate-950/50 uppercase text-[10px] tracking-widest font-black text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
@@ -438,12 +455,20 @@ export default function ApplicantManagementPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border dark:border-slate-700">
-                          {app.user?.profile?.profile_picture ? (
+                          {app.user?.profile?.profile_picture_url ? (
                             <img
-                              src={getAvatarUrl(
-                                app.user.profile.profile_picture,
-                              )}
+                              src={app.user.profile.profile_picture_url}
+                              loading="lazy"
+                              decoding="async"
                               className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
+                                (
+                                  e.target as HTMLImageElement
+                                ).parentElement!.innerHTML =
+                                  '<div class="text-slate-400"><User size={18} /></div>';
+                              }}
                             />
                           ) : (
                             <User className="text-slate-400" size={18} />

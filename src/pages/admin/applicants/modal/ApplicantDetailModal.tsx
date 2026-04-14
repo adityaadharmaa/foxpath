@@ -55,14 +55,22 @@ export default function ApplicantDetailModal({
 
   // FIX: Menggunakan VITE_STORAGE_URL dari .env Anda
   const getFileUrl = (path: string) => {
-    if (!path) return "#";
+    if (!path) return null;
+
     if (path.startsWith("http")) return path;
 
     const storageBase =
-      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
-    const cleanPath = path.startsWith("/") ? path.substring(1) : path;
+      import.meta.env.VITE_STORAGE_URL || "http://192.168.110.250:8000";
+    const baseUrl = storageBase.endsWith("/")
+      ? storageBase.slice(0, -1)
+      : storageBase;
 
-    return `${storageBase}/${cleanPath}`;
+    let cleanPath = path.startsWith("/") ? path : `/${path}`;
+    if (!cleanPath.startsWith("/storage/")) {
+      cleanPath = `/storage${cleanPath}`;
+    }
+
+    return `${baseUrl}${cleanPath}`;
   };
 
   const formatDate = (dateString: string | null) => {
@@ -167,11 +175,11 @@ export default function ApplicantDetailModal({
                 {/* Profile Card */}
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm text-center">
                   <div className="h-24 w-24 rounded-2xl bg-slate-100 dark:bg-slate-800 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden mx-auto mb-4">
-                    {data.user?.profile?.profile_picture ? (
+                    {data.user?.profile?.profile_picture_url ? (
                       <img
-                        src={getFileUrl(data.user.profile.profile_picture)}
+                        src={getFileUrl(data.user.profile.profile_picture_url)}
+                        alt={data.user.username}
                         className="w-full h-full object-cover"
-                        alt="Avatar"
                       />
                     ) : (
                       <User className="w-full h-full p-4 text-slate-300" />

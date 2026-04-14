@@ -3,38 +3,45 @@ import {
   notificationService,
   type Notification,
 } from "@/services/notificationService";
-import {
-  Bell,
-  Trash2,
-  BellOff,
-  CheckCheck,
-  Loader2,
-  Eraser,
-} from "lucide-react";
+import { Bell, Trash2, BellOff, CheckCheck, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@/services/authService";
+// Import instance echo yang sudah kita buat sebelumnya
+import { echo } from "@/lib/echo";
 
 export default function NotificationDropdown() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const user = authService.getUser();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Refresh setiap 1 menit
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
+    if (user && user.id) {
+      const channel = `App.Models.User.${user.id}`;
+
+      echo.private(channel).notification((notification: any) => {
+        setNotifications((prev) => [notification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+        toast.info(notification.message || "Anda menerima notifikasi baru");
+      });
+
+      return () => {
+        echo.leave(channel);
+      };
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (isOpen) {
-      fetchData;
+      fetchData();
     }
   }, [isOpen]);
 
@@ -79,7 +86,6 @@ export default function NotificationDropdown() {
   const handleMarkRead = async (id: string, isRead: boolean) => {
     if (isRead) return;
 
-    // Update UI instan
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
     );
@@ -88,7 +94,7 @@ export default function NotificationDropdown() {
     try {
       await notificationService.markAsRead(id);
     } catch (error) {
-      fetchData(); // Sync ulang jika gagal
+      fetchData();
     }
   };
 
@@ -97,7 +103,9 @@ export default function NotificationDropdown() {
     try {
       await notificationService.delete(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      fetchData(); // Refresh count
+      // Refresh count untuk memastikan angka akurat
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
     } catch (error) {
       toast.error("Gagal menghapus notifikasi");
     }
@@ -113,7 +121,7 @@ export default function NotificationDropdown() {
     }
   };
 
-  const handleSeeAll = async () => {
+  const handleSeeAll = () => {
     setIsOpen(false);
     if (user?.role === "admin") {
       navigate("/admin/notifications");
@@ -132,10 +140,7 @@ export default function NotificationDropdown() {
         <Bell size={20} className={cn(unreadCount > 0 && "animate-pulse")} />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 flex h-5 w-5 translate-x-1/2 -translate-y-1/2 items-center justify-center">
-            {/* Efek Ping/Ring untuk menarik perhatian (opsional) */}
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-
-            {/* Badge Angka */}
             <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-slate-900 text-[9px] font-black text-white">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
@@ -247,7 +252,7 @@ export default function NotificationDropdown() {
           <div className="p-3 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 text-center">
             <button
               onClick={handleSeeAll}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors w-full"
             >
               Lihat Semua Aktivitas
             </button>

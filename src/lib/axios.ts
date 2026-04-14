@@ -4,9 +4,12 @@ const API_URL = "http://localhost:8000/api/v1";
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || API_URL,
+  withCredentials: true,
+  withXSRFToken: true,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
@@ -37,6 +40,9 @@ apiClient.interceptors.response.use(
       localStorage.removeItem("user");
 
       window.location.href = "/login";
+    }
+    if (error.response && error.response.status === 419) {
+      window.location.reload();
     }
     return Promise.reject(error);
   },

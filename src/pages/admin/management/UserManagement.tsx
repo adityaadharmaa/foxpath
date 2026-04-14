@@ -248,9 +248,22 @@ export default function UserManagementPage() {
 
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
+
+    // Jika path dari API sudah URL lengkap (http://...), langsung gunakan
+    if (path.startsWith("http")) return path;
+
     const storageBase =
-      import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
-    return `${storageBase}/${path.startsWith("/") ? path.substring(1) : path}`;
+      import.meta.env.VITE_STORAGE_URL || "http://192.168.110.250:8000";
+    const baseUrl = storageBase.endsWith("/")
+      ? storageBase.slice(0, -1)
+      : storageBase;
+
+    let cleanPath = path.startsWith("/") ? path : `/${path}`;
+    if (!cleanPath.startsWith("/storage/")) {
+      cleanPath = `/storage${cleanPath}`;
+    }
+
+    return `${baseUrl}${cleanPath}`;
   };
 
   return (
@@ -328,7 +341,7 @@ export default function UserManagementPage() {
               })
             }
           >
-            {[10, 20, 50].map((v) => (
+            {[5, 10, 20, 50].map((v) => (
               <option key={v} value={v}>
                 {v}
               </option>
@@ -356,9 +369,12 @@ export default function UserManagementPage() {
                 <div className="flex justify-between items-start mb-6 gap-2">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-slate-50 dark:border-slate-700 shadow-sm">
-                      {u.profile_picture ? (
+                      {u.profile?.profile_picture_url ? (
                         <img
-                          src={getAvatarUrl(u.profile_picture)}
+                          src={getAvatarUrl(u.profile?.profile_picture_url)}
+                          alt={u.username}
+                          loading="lazy"
+                          decoding="async"
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -382,7 +398,7 @@ export default function UserManagementPage() {
                     <ActionMenu
                       userId={u.id}
                       isActive={u.is_active}
-                      currentRole={u.role_name}
+                      currentRole={u.role.name}
                       onDelete={() => confirmDelete(u.id)}
                       onToggle={() => handleToggleStatus(u)}
                       onResend={() => handleResendVerification(u)}
@@ -408,12 +424,12 @@ export default function UserManagementPage() {
                       <Badge
                         className={cn(
                           "w-fit uppercase text-[9px] font-black px-2 h-6 border-none",
-                          u.role_name === "admin"
+                          u.role.name === "admin"
                             ? "bg-purple-500/10 text-purple-600"
                             : "bg-blue-500/10 text-blue-600",
                         )}
                       >
-                        {u.role_name}
+                        {u.role.name}
                       </Badge>
                     </div>
                     <div className="flex flex-col gap-1 items-end">
@@ -458,9 +474,12 @@ export default function UserManagementPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="h-10 w-10 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border dark:border-slate-700 shadow-sm transition-all">
-                        {u.profile_picture ? (
+                        {u.profile?.profile_picture_url ? (
                           <img
-                            src={getAvatarUrl(u.profile_picture)}
+                            src={getAvatarUrl(u.profile?.profile_picture_url)}
+                            alt={u.username}
+                            loading="lazy"
+                            decoding="async"
                             className="h-full w-full object-cover"
                           />
                         ) : (
@@ -484,12 +503,12 @@ export default function UserManagementPage() {
                         variant="outline"
                         className={cn(
                           "uppercase text-[10px] font-black border-none px-0",
-                          u.role_name === "admin"
+                          u.role.name === "admin"
                             ? "text-purple-500"
                             : "text-blue-500",
                         )}
                       >
-                        {u.role_name}
+                        {u.role.name}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -513,7 +532,7 @@ export default function UserManagementPage() {
                       <ActionMenu
                         userId={u.id}
                         isActive={u.is_active}
-                        currentRole={u.role_name}
+                        currentRole={u.role.name}
                         onDelete={() => confirmDelete(u.id)}
                         onToggle={() => handleToggleStatus(u)}
                         onResend={() => handleResendVerification(u)}
