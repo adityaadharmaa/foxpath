@@ -92,9 +92,7 @@ export default function Landing() {
                     <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-200 flex items-center justify-center text-xs font-bold">
                       {user?.username?.charAt(0).toUpperCase() || "U"}
                     </div>
-                    <span className="max-w-[100px] truncate">
-                      {user?.username}
-                    </span>
+                    <span className="max-w-25 truncate">{user?.username}</span>
                     <ChevronDown
                       size={14}
                       className={`transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
@@ -112,7 +110,7 @@ export default function Landing() {
                         </p>
                       </div>
                       <button
-                        onClick={() => navigate("/profile")}
+                        onClick={() => navigate("/user/profile")}
                         className="w-full text-left px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors"
                       >
                         <User size={16} /> Profile Saya
